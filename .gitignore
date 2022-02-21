@@ -1,0 +1,10 @@
+# ignore all data
+*.pdf
+*.fig
+*.png
+*.jpg
+*.jpeg
+*.avi
+*.mpeg
+*.mp4
+*.asv
