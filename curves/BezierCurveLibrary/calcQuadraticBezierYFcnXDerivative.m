@@ -54,6 +54,8 @@ function val = calcQuadraticBezierYFcnXDerivative(x, curveParams, der)
 
 val = NaN;
 
+tol=10*eps;
+
 assert((der >= -1 && der <= 3),'der must be within [0,3]');
 
 %xpts = curveParams.xpts;
@@ -63,7 +65,7 @@ nrow = size(curveParams.xpts,1);
 ncol = size(curveParams.xpts,2);
 xmin = curveParams.xEnd(1,1);
 xmax = curveParams.xEnd(1,2);
-npts = size(cuveParams.xpts,1);
+npts = size(curveParams.xpts,1);
 
 assert(npts == 3);
 
@@ -115,12 +117,18 @@ else
 
     t0 = sqrt(b*b-4*a*c);
     u = (-b + t0)/(2*a);        
-    if( u < 0 || u > 1)
+    if( u < 0-tol || u > 1+tol)
         u = (-b - t0)/(2*a);
     end
-    assert( u >=0 && u <= 1);
+    if(~(u >= -tol && u <= 1+tol))
+        here=1;
+    end
+    assert( u >=-tol && u <= 1+tol);
+
+    u=clampU(u);
+
+
     
-end
 
     %Evaluate the desired derivative of y   
     switch der
@@ -138,18 +146,6 @@ end
             
             val = v2*y0 + 2*u*v*y1 + u2*y2;                    
         case 1
-
-            du =1;
-
-            u2 = u*u;
-            du2= 2*u;
-            
-            v  = (1-u);
-            dv = -1;
-            
-            v2 = v*v;
-            dv2=2*v;
-
             x0 = curveParams.xpts(1,col);
             x1 = curveParams.xpts(2,col);
             x2 = curveParams.xpts(3,col);
@@ -157,31 +153,29 @@ end
             y0 = curveParams.ypts(1,col);
             y1 = curveParams.ypts(2,col);
             y2 = curveParams.ypts(3,col);
+
+            du = 1;
+
+            u2 = u*u;
+            d_u2_du = 2*u*du;
+
+            
+            v       = (1-u);
+            dv_du   =   -1*du;
+            
+            v2 = v*v;
+            d_v2_du = 2*v*dv_du;
+
             
             %y = v2*y0 + 2*u*v*y1 + u2*y2;
-            dy= dv2*y0 + (2*du*v+2*u*dv)*y1 + du2*y2;
+            dydu= (  d_v2_du*y0 + (2*du*v + 2*u*dv_du)*y1   + d_u2_du*y2);
 
             %x = v2*x0 + 2*u*v*x1 + u2*x2;
-            dx= dv2*x0 + (2*du*v+2*u*dv)*x1 + du2*x2;
-
-            val = dy/dx;
+            dxdu= (  d_v2_du*x0 + (2*du*v + 2*u*dv_du)*x1   + d_u2_du*x2);
+            
+            val = dydu/dxdu;
             
         case 2
-
-            du=1;
-
-            u2 = u*u;
-            du2= 2*u;
-            d2u2= 2;
-
-            v  = (1-u);
-            dv = -1;
-            %d2v= 0;
-            
-            v2 = v*v;
-            dv2=2*v;
-            d2v2=2;
-
             x0 = curveParams.xpts(1,col);
             x1 = curveParams.xpts(2,col);
             x2 = curveParams.xpts(3,col);
@@ -189,32 +183,32 @@ end
             y0 = curveParams.ypts(1,col);
             y1 = curveParams.ypts(2,col);
             y2 = curveParams.ypts(3,col);
+
+            du = 1;
+
+            u2          = u*u;
+            d_u2_du     = 2*u*du;
+            d2_u2_du2   = 2*du*du;
+            
+            v           = (1-u);
+            dv_du       =   -1*du;
+            
+            v2          = v*v;
+            d_v2_du     = 2*v*dv_du;
+            d2_v2_du2   = 2*dv_du*dv_du;
+
             
             %y = v2*y0 + 2*u*v*y1 + u2*y2;
-            dy =  dv2*y0  + (2*du*v+2*u*dv)*y1 + du2*y2;
-            d2y= d2v2*y0 + (4*du*dv)*y1 + d2u2*y2;
+            dydu    = (    d_v2_du*y0 + (2*du*v + 2*u*dv_du)*y1  +  d_u2_du*y2);
+            d2ydu2  = (  d2_v2_du2*y0 + (4*du*dv_du        )*y1  +d2_u2_du2*y2);
 
             %x = v2*x0 + 2*u*v*x1 + u2*x2;
-            dx =  dv2*x0 + (2*du*v+2*u*dv)*x1 + du2*x2;
-            d2x= d2v2*x0 + (4*du*dv)*x1 + d2u2*x2;
-  
-            val  = (d2y*dx - dy*d2x)/(dx*dx);
+            dxdu    = (    d_v2_du*x0 + (2*du*v + 2*u*dv_du)*x1   + d_u2_du*x2);
+            d2xdu2  = (  d2_v2_du2*x0 + (4*du*dv_du        )*x1  +d2_u2_du2*x2);
+
+            val = ((d2ydu2*dxdu - dydu*d2xdu2)/(dxdu*dxdu))*(1/dxdu);
 
         case 3
-            du=1;
-
-            u2 = u*u;
-            du2= 2*u;
-            d2u2= 2;
-
-            v  = (1-u);
-            dv = -1;
-            %d2v= 0;
-            
-            v2 = v*v;
-            dv2=2*v;
-            d2v2=2;
-
             x0 = curveParams.xpts(1,col);
             x1 = curveParams.xpts(2,col);
             x2 = curveParams.xpts(3,col);
@@ -222,18 +216,39 @@ end
             y0 = curveParams.ypts(1,col);
             y1 = curveParams.ypts(2,col);
             y2 = curveParams.ypts(3,col);
+
+            du = 1;
+
+            u2          = u*u;
+            d_u2_du     = 2*u*du;
+            d2_u2_du2   = 2*du*du;
             
-            %y =   v2*y0            + 2*u*v*y1   + u2*y2;
-            dy =  dv2*y0  + (2*du*v+2*u*dv)*y1  + du2*y2;
-            d2y= d2v2*y0        + (4*du*dv)*y1 + d2u2*y2;
-            %d3y= 0;
+            v           = (1-u);
+            dv_du       =   -1*du;
+            
+            v2          = v*v;
+            d_v2_du     = 2*v*dv_du;
+            d2_v2_du2   = 2*dv_du*dv_du;
 
-            %x =   v2*x0 +           2*u*v*x1 +   u2*x2;
-            dx =  dv2*x0 + (2*du*v+2*u*dv)*x1 +  du2*x2;
-            d2x= d2v2*x0 +       (4*du*dv)*x1 + d2u2*x2;
-            %d3x = 0;
+            
+            %y = v2*y0 + 2*u*v*y1 + u2*y2;
+            dydu    = (    d_v2_du*y0 + (2*du*v + 2*u*dv_du)*y1  +  d_u2_du*y2);
+            d2ydu2  = (  d2_v2_du2*y0 + (4*du*dv_du        )*y1  +d2_u2_du2*y2);
 
-            val  = -2*(d2y*dx - dy*d2x)*(2*d2x*dx)/(dx*dx*dx);
+            %x = v2*x0 + 2*u*v*x1 + u2*x2;
+            dxdu    = (    d_v2_du*x0 + (2*du*v + 2*u*dv_du)*x1   + d_u2_du*x2);
+            d2xdu2  = (  d2_v2_du2*x0 + (4*du*dv_du        )*x1  +d2_u2_du2*x2);
+
+            t1 = 1 / dxdu;
+            t3 = dxdu*dxdu;
+            t4 = 1 / t3;
+            t11 = d2xdu2*d2xdu2;
+            t14 = dydu * t4;
+
+            val = (( - 2*d2ydu2*t4*d2xdu2 ...
+                  + 2*dydu/t3/dxdu * t11) * t1 ...
+                - (d2ydu2*t1 - t14*d2xdu2)*t4*d2xdu2) * t1;  
+
            
     end
             

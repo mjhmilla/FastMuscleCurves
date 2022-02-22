@@ -267,8 +267,8 @@ save('output/structs/defaultFelineSoleus.mat',...
      'defaultFelineSoleus');                      
 
 structOfFigures = [];
-structOfFigures = plotStructOfBezierSplines( structOfFigures, ...
-                    felineSoleusNormMuscleCurves,'Inverse',[1,1,1].*0.75,2);
+%structOfFigures = plotStructOfBezierSplines( structOfFigures, ...
+%                    felineSoleusNormMuscleCurves,'Inverse',[1,1,1].*0.75,3);
 
 %%
 % Convert all of the Bezier curves to hyperbolic splines and write the
@@ -285,12 +285,13 @@ for indexCurve=1:1:length(curveNames)
             numberOfSubdivisions);
 end
 
-here=1;
+%structOfFigures = plotStructOfBezierSplines( structOfFigures,...
+%                    felineSoleusNormMuscleQuadraticCurves,'Inverse',[0.5,0.5,1],1.5,1);
+
+structOfFigures = plotStructOfQuadraticBezierSplines( structOfFigures,...
+                    felineSoleusNormMuscleQuadraticCurves,'Inverse',[1,0.5,0.5],2,1);
 
 
-structOfFigures = plotStructOfBezierSplines( structOfFigures,...
-                    felineSoleusNormMuscleQuadraticCurves,'Inverse',[0,0,0],1);
-here=1;
 %felineSoleusNormMuscleHyperbolicCurves =felineSoleusNormMuscleCurves;
 
 % for i=1:1:length(curveNames)

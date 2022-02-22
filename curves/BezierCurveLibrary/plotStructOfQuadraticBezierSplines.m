@@ -1,4 +1,4 @@
-function structOfFigures = plotStructOfBezierSplines( structOfFigures, ...
+function structOfFigures = plotStructOfQuadraticBezierSplines( structOfFigures, ...
                                          curveStruct ,...
                                          ignoreStructsWithThisKeyWord,...
                                          colorOverride, lineWidthOverride,...
@@ -32,8 +32,8 @@ for i=1:1:length(curveNames)
         here=1;
     end
 
-    curveSample = calcBezierYFcnXCurveSampleVector(...
-                    curveStruct.(curveNames{i}), 500,[]);
+    curveSample = calcQuadraticBezierYFcnXCurveSampleVector(...
+                    curveStruct.(curveNames{i}), 2000,[]);
 
     xmin = min(curveSample.x);
     xmax = max(curveSample.x);
@@ -81,9 +81,6 @@ for i=1:1:length(curveNames)
         dydxLineWidth = lineWidthOverride;        
     end
     
-
-
-
     plot(curveSample.x, curveSample.dydx,'Color',dydxColor,...
         'LineWidth',dydxLineWidth);
       hold on;            
@@ -114,8 +111,6 @@ for i=1:1:length(curveNames)
         d2ydx2LineWidth = lineWidthOverride;        
     end
 
-
-    
     plot(curveSample.x, curveSample.d2ydx2,'Color',d2ydx2Color,...
          'LineWidth',d2ydx2LineWidth);
       hold on;            
@@ -163,7 +158,6 @@ for i=1:1:length(curveNames)
         'LineWidth',d3ydx3LineWidth*0.5);
         hold on;
     end
-
 
 %     if(isempty(curveStruct.(curveNames{i}).integral)==0)  
 %         intYdx = curveSample.intYdx;
