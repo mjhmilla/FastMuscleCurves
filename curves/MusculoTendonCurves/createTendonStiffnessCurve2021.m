@@ -46,39 +46,39 @@ function tendonStiffnessCurve = ...
 %
 %%
 
+assert(size(tendonForceLengthCurve.xpts,2)==1)
 
-xV = zeros(1,size(tendonForceLengthCurve.xpts,2)*2+1);
+xVal = zeros(1,size(tendonForceLengthCurve.xpts,2)*2+1);
 
 %Subdivide the tendonForceLengthCurve
 j=1;
 for i=1:1:(size(tendonForceLengthCurve.xpts,2))
-  xV(1,j)=tendonForceLengthCurve.xpts(1,i);
+  xVal(1,j)=tendonForceLengthCurve.xpts(1,i);
   j=j+1;
-  xV(1,j)=tendonForceLengthCurve.xpts(1,i) ...
+  xVal(1,j)=tendonForceLengthCurve.xpts(1,i) ...
       + 0.5*(tendonForceLengthCurve.xpts(end,i) ...
             -tendonForceLengthCurve.xpts(1,i));
   j=j+1;
 end
-xV(1,end)=tendonForceLengthCurve.xpts(end,end);
+xVal(1,end)=tendonForceLengthCurve.xpts(end,end);
 
 
 
-nint = length(xV);
 
-xVal    = zeros(1,nint);
-yVal    = zeros(1,nint);
-dydxVal = zeros(1,nint);
+yVal    = zeros(1,length(xVal));
+dydxVal = zeros(1,length(xVal));
 
+ 
+yVal(1,1)    = 0;
+yVal(1,3)    = calcBezierYFcnXDerivative(xVal(1,i),tendonForceLengthCurve,1); 
+yVal(1,2)    = 0.5*(yVal(1,3)+yVal(1,1));
 
-for i=1:1:(length(xV))
-  xVal(1,i)    = xV(1,i);
-  yVal(1,i)    = calcBezierYFcnXDerivative(xVal(1,i),tendonForceLengthCurve,1);
-  dydxVal(1,i) = calcBezierYFcnXDerivative(xVal(1,i),tendonForceLengthCurve,2);  
-end
-            
+dydxVal(1,1)=0;
+dydxVal(1,2)=1.5*(yVal(1,3)-yVal(1,1))/(xVal(1,3)-xVal(1,1));
+dydxVal(1,3)=0;
+         
 xpts = zeros(6,length(yVal)-1);          
 ypts = zeros(6,length(yVal)-1);          
-
 
 for i=1:1:size(xpts,2)
   c = scaleCurviness(curviness); 
@@ -93,7 +93,7 @@ end
 tendonStiffnessCurve.xpts    = xpts;
 tendonStiffnessCurve.ypts    = ypts;
 
-tendonStiffnessCurve.xEnd         = [xV(1,1), xV(1,end)];
+tendonStiffnessCurve.xEnd         = [xVal(1,1), xVal(1,end)];
 tendonStiffnessCurve.yEnd         = [yVal(1,1), yVal(1,end)];
 tendonStiffnessCurve.dydxEnd      = [dydxVal(1,1), dydxVal(1,end)];
 tendonStiffnessCurve.d2ydx2End    = [0, 0];

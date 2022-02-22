@@ -3,6 +3,11 @@
 clc;
 close all;
 clear all;
+
+%Number of subdivisions of the quintic Bezier curves to use when
+%constructing the quadratic Bezier curves
+numberOfSubdivisions=2;
+
 fitCrossBridgeStiffnessDampingToKirch199490Hz=0;
 flag_useFixedLambdaECM    = 0;
 
@@ -261,6 +266,9 @@ defaultFelineSoleus = struct('musculotendon',...
 save('output/structs/defaultFelineSoleus.mat',...
      'defaultFelineSoleus');                      
 
+structOfFigures = [];
+structOfFigures = plotStructOfBezierSplines( structOfFigures, ...
+                    felineSoleusNormMuscleCurves,'Inverse',[1,1,1].*0.75,2);
 
 %%
 % Convert all of the Bezier curves to hyperbolic splines and write the
@@ -273,14 +281,15 @@ for indexCurve=1:1:length(curveNames)
     disp(curveNames{indexCurve});
     felineSoleusNormMuscleQuadraticCurves.(curveNames{indexCurve}) = ...
         createQuadraticBezierCurve(...
-            felineSoleusNormMuscleCurves.(curveNames{indexCurve}) );
+            felineSoleusNormMuscleCurves.(curveNames{indexCurve}),...
+            numberOfSubdivisions);
 end
 
 here=1;
 
 
-figH = plotStructOfBezierSplines( felineSoleusNormMuscleQuadraticCurves,...
-                                  'Inverse');
+structOfFigures = plotStructOfBezierSplines( structOfFigures,...
+                    felineSoleusNormMuscleQuadraticCurves,'Inverse',[0,0,0],1);
 here=1;
 %felineSoleusNormMuscleHyperbolicCurves =felineSoleusNormMuscleCurves;
 

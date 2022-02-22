@@ -70,6 +70,10 @@ npts = size(curveParams.xpts,1);
 assert(npts >= 2);
 
 
+if( x >= 0.0239 && x <= 0.0241)
+    here=1;
+end
+
 if( (x < xmin) || (x > xmax) )
     idxEnd = NaN;
     if(x <= xmin)
@@ -121,8 +125,8 @@ else
     %the control points that define the derivative curve
     xV  = curveParams.xpts(:,col);
     x1V = diff(xV) .*(nrow-1);
-    
-    
+   
+       
     %Find the value of u that corresponds to the desired value of x    
     %u      = (x-curveParams.xpts(1, col)) / (curveParams.xpts(nrow, col)-curveParams.xpts(1, col));
     u = 0.5;
@@ -135,14 +139,22 @@ else
     errBest=Inf;
 
     for i=1:1:iterBisectionMax
-       errL   = abs(calc1DBezierCurveValue(u-du, xV) - x);
-       errR   = abs(calc1DBezierCurveValue(u+du, xV) - x);
+       uL=u-du;
+       uR=u+du;
+       errL=Inf;
+       errR=Inf;
+       if(uL >= 0 && uL <=1 )
+        errL   = abs(calc1DBezierCurveValue(u-du, xV) - x);
+       end
+       if(uR >= 0 && uR <=1 )
+        errR   = abs(calc1DBezierCurveValue(u+du, xV) - x);
+       end
        if(errL < errR && errL< errBest)
-            u=u-du;
+            u=uL;
             errBest=errL;
        end
        if(errR < errL && errR < errBest)
-            u=u+du;
+            u=uR;
             errBest=errR;
        end
     end
@@ -192,7 +204,7 @@ else
             yV  =  curveParams.ypts(:,col);
             y1V =  diff(yV) .*(nrow-1);
             y2V =  diff(y1V).*(nrow-2);
-    
+                
             x1  = calc1DBezierCurveValue(u, x1V);
             y1  = calc1DBezierCurveValue(u, y1V);
             x2  = calc1DBezierCurveValue(u, x2V);

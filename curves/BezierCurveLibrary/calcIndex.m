@@ -91,5 +91,6 @@ if(flag_found==0)
    here=1; 
 end
 
+
 assert( (flag_found == 1),... 
     'Error: A value of xReal was used that is not within the Bezier curve set.');
