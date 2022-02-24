@@ -8,6 +8,7 @@
 *.mpeg
 *.mp4
 *.asv
+*.txt
 *.mat
 *.svg
-*.txt
+*.f

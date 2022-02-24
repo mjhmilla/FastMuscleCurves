@@ -1,4 +1,4 @@
-function success = writeMuscleStructures(structOfMuscleCurves,muscleName,folder,delimiter)
+function success = writeMuscleStructuresToFortran(structOfMuscleCurves,muscleName,folder,delimiter)
 
 success=0;
 curveNames = fieldnames(structOfMuscleCurves);

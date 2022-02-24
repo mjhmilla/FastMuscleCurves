@@ -2,6 +2,7 @@ function structOfFigures = plotStructOfBezierSplines( structOfFigures, ...
                                          curveStruct ,...
                                          ignoreStructsWithThisKeyWord,...
                                          colorOverride, lineWidthOverride,...
+                                         seriesLabelOverride,seriesNumberOverride,...
                                          flag_plotNumericalDerivatives)
 
 
@@ -68,6 +69,29 @@ for i=1:1:length(curveNames)
       axis square;
       box off;            
       xlim([xmin,xmax]);
+
+    if(isempty(seriesLabelOverride)==0)
+        %   seriesLabelOverride,
+        % seriesNumberOverride
+
+        xPos=xlim;
+        yPos=ylim;
+        
+        x0=xPos(1,1);
+        x1=xPos(1,2);
+        y0=yPos(1,1);
+        y1=yPos(1,2);
+        
+        xTxt = x0+0.4*(x1-x0);
+        yTxt = y0 + 0.1*(y1-y0)+ seriesNumberOverride*0.05*(y1-y0);
+        
+        xLine = [(x0+0.3*(x1-x0));(x0+0.35*(x1-x0))];
+        plot(xLine,[1;1].*yTxt,'Color',yColor);
+        hold on;
+
+        text(xTxt,yTxt,seriesLabelOverride);
+        hold on;
+    end      
 
     subplot(2,2,2);   
 
