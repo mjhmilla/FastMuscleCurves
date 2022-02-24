@@ -6,7 +6,9 @@ clear all;
 
 %Number of subdivisions of the quintic Bezier curves to use when
 %constructing the quadratic Bezier curves
-numberOfSubdivisions=2;
+numberOfQuadraticSubdivisions= 2;
+numberOfCubicSubdivisions    = 3;
+cubicZeroSecondDerivative    = 1;
 
 fitCrossBridgeStiffnessDampingToKirch199490Hz=0;
 flag_useFixedLambdaECM    = 0;
@@ -267,43 +269,50 @@ save('output/structs/defaultFelineSoleus.mat',...
      'defaultFelineSoleus');                      
 
 structOfFigures = [];
-%structOfFigures = plotStructOfBezierSplines( structOfFigures, ...
-%                    felineSoleusNormMuscleCurves,'Inverse',[1,1,1].*0.75,3);
+structOfFigures = plotStructOfBezierSplines( structOfFigures, ...
+                   felineSoleusNormMuscleCurves,'Inverse',[1,1,1].*0.75,4,0);
 
 %%
-% Convert all of the Bezier curves to hyperbolic splines and write the
+% Convert all of the Bezier curves to cubic splines Bezier curves and write the
+% information to file
+%%
+felineSoleusNormMuscleCubicCurves=[];
+curveNames = fieldnames(felineSoleusNormMuscleCurves);
+
+for indexCurve=1:1:length(curveNames)
+    disp(curveNames{indexCurve});
+    felineSoleusNormMuscleCubicCurves.(curveNames{indexCurve}) = ...
+        convertToCubicBezierCurve(...
+            felineSoleusNormMuscleCurves.(curveNames{indexCurve}),...
+            numberOfCubicSubdivisions,cubicZeroSecondDerivative,1);
+end
+
+structOfFigures = plotStructOfBezierSplines( structOfFigures,...
+                   felineSoleusNormMuscleCubicCurves,'Inverse',[0.5,0.5,1],2,0);
+
+
+%%
+% Convert all of the Bezier curves to quadratic Bezier curves and write the
 % information to file
 %%
 felineSoleusNormMuscleQuadraticCurves=[];
 curveNames = fieldnames(felineSoleusNormMuscleCurves);
 
 for indexCurve=1:1:length(curveNames)
-    disp(curveNames{indexCurve});
+%    disp(curveNames{indexCurve});
     felineSoleusNormMuscleQuadraticCurves.(curveNames{indexCurve}) = ...
-        createQuadraticBezierCurve(...
+        convertToQuadraticBezierCurve(...
             felineSoleusNormMuscleCurves.(curveNames{indexCurve}),...
-            numberOfSubdivisions);
+            numberOfQuadraticSubdivisions);
 end
 
-%structOfFigures = plotStructOfBezierSplines( structOfFigures,...
-%                    felineSoleusNormMuscleQuadraticCurves,'Inverse',[0.5,0.5,1],1.5,1);
 
 structOfFigures = plotStructOfQuadraticBezierSplines( structOfFigures,...
-                    felineSoleusNormMuscleQuadraticCurves,'Inverse',[1,0.5,0.5],2,1);
+                    felineSoleusNormMuscleQuadraticCurves,'Inverse',[1,0.5,0.5],1,0);
 
-
-%felineSoleusNormMuscleHyperbolicCurves =felineSoleusNormMuscleCurves;
-
-% for i=1:1:length(curveNames)
-%     if(isempty(felineSoleusNormMuscleCurves.(curveNames{i}))==0)
-%         numberOfSegments = size(felineSoleusNormMuscleCurves.(curveNames{i}).xpts,2);
-%         felineSoleusNormMuscleHyperbolicCurves.(curveNames{i}) = ...
-%             struct('a', size())
-% 
-%      = createHyperbolicSplineFromBezierSpline(...
-%          felineSoleusNormMuscleCurves.(curveNames{i}));
-%     end
-% end
+success = writeMuscleStructures(felineSoleusNormMuscleQuadraticCurves,...
+                'felineSoleus','output/tables/QuadraticBezierCurves/',...
+                ',');
 
    
 %%
