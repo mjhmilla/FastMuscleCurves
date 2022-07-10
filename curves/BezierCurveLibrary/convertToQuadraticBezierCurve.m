@@ -1,5 +1,9 @@
 function quadraticCurve = convertToQuadraticBezierCurve(higherOrderCurve,subDivisions)
 
+if(size(higherOrderCurve.xpts,1) <= 3)
+  here=1;
+end
+
 assert(size(higherOrderCurve.xpts,1) > 3)
 
 rootEPS = eps^0.5;

@@ -16,7 +16,7 @@ function [sarcomereProperties] = ...
 %
 % The fraction of the passive force length curve that is attributed to
 % the extracellular matrix comes from the average of the maximum and
-% minimum fraction observed by Pardo et al. in the study they conducted
+% minimum fraction observed by Prado et al. in the study they conducted
 % on rabbit skeletal muscle.
 %
 % Finally, the terminal stiffness of the section of titin between the
@@ -49,38 +49,32 @@ function [sarcomereProperties] = ...
 %
 %%
 
-geoCat   = [1.27, 1.7, 2.34, 2.51, 3.94];
-geoHuman = [1.27, 1.7, 2.64, 2.81, 4.24];
 
-%The frog geometry has been blocked: the titin geometry below comes from
-%a human soleus. Perhaps it is similar to cat skeletal muscel. However,
-%there is no reason (that I) have to expect that it is similar to the titin
-%molecule in frog skeletal muscle.
-%
-%geoFrog  = [1.27, 1.7,  2.0,  2.2, 3.6 ];
-geo = geoCat;
-switch flag_Cat1_Human2
-  case 1
-    geo = geoCat;    
-  case 2
-    geo = geoHuman;    
-  otherwise
-    assert(0, 'Error: flagFrog0Cat1Human1 incorrectly set');
-end
+
+[ geo, ...
+  halfMyosinBareLength, ...
+  halfMyosinLength,...
+  zLineLength,...
+  actinLength] = ...
+    calcSarcomereFilamentLengthsFromActiveForceLengthKeyPoints(flag_Cat1_Human2);
+
+
+[ geoCat, ...
+  halfMyosinBareLengthCat, ...
+  halfMyosinLengthCat,...
+  zLineLengthCat,...
+  actinLengthCat] = ...
+    calcSarcomereFilamentLengthsFromActiveForceLengthKeyPoints(1);
+
+[ geoHuman, ...
+  halfMyosinBareLengthHuman, ...
+  halfMyosinLengthHuman,...
+  zLineLengthHuman,...
+  actinLengthHuman] = ...
+    calcSarcomereFilamentLengthsFromActiveForceLengthKeyPoints(2);
+
     
-%Note that the length of the bare section is 1/4 of the length
-%of the plateau. Why? The first half comes from the fact that 
-%the section from geo(1,4) to geo(1,3) is a result of 2 actins moving
-%across the flat section. We take half of that again because we're
-%interested in half of the bare length.
-halfMyosinBareLength =     ( geo(1,4) - geo(1,3) )*0.25;
 
-halfMyosinLength     = 0.5*(geo(1,5)-geo(1,4)) ...
-                      +halfMyosinBareLength;                    
-zLineLength = 0.05;                    
-actinLength          = 0.5*( (geo(1,5))...
-                        -2*halfMyosinLength ...
-                        -2*zLineLength);
                       
                       
 
@@ -141,7 +135,7 @@ bb = dataTrombitas1998Figure5(2).y;
 Ab = [dataTrombitas1998Figure5(2).x, ones(size(bb))];
 xb = (Ab'*Ab)\(Ab'*bb);
 
-flag_debugTitinFit =0;
+flag_debugTitinFit =1;
 if(flag_debugTitinFit==1)
   figTitinFit =figure;
   for z=1:1:length(dataTrombitas1998Figure5)
@@ -195,7 +189,7 @@ loptIGDTotalNorm  = 1*0.5-(loptT12Norm+loptIGPNorm+loptPEVKNorm); %0.5: applies 
 
 %IGD: This is the small section of the distal Ig that section that
 % is still free to stretch. The rest is bound to myosin and does not 
-% flex at all.
+% stretch at all.
 
 disp('Reminder: remove all lfiso variables');
 lfisoIGPNorm  = 0.45812/optSarcomereLengthHuman;
@@ -252,14 +246,28 @@ loptIGDFixedCat = normHalfMyosinLength*optSarcomereLength;
 loptIGDFreeCat =  loptIGDFreeNorm*optSarcomereLength;
 
 
-fprintf('%e\t%e\tIgDFixedCat\n', loptIGDFixedCat, loptIGDFixedNorm);
-fprintf('%e\t%e\tIgDFreeCat\n' , loptIGDFreeCat, loptIGDFreeNorm);
+fprintf('%e\t%e\tIgDFixedCat\n'            , loptIGDFixedCat, loptIGDFixedNorm);
+fprintf('%e\t%e\tIgDFreeCat\n'             , loptIGDFreeCat, loptIGDFreeNorm);
 fprintf('%e\tNorm. IgP Stretch Rate\n'     , normStretchRateIgP);
 fprintf('%e\tNorm. Pevk Stretch Rate\n'    , normStretchRatePevk);
 fprintf('%e\tNorm. IgD Stretch Rate\n'     , normStretchRateIgDFree);
 fprintf('%e\tlce Stretch Rate\n'     , normStretchHalfLce);
 
 here=1;
+
+%Since we are assuming that the titin is a proportionate scaling of
+%a human soleus titin, we can calculate the number of prox Ig domains,
+%PEVK residues, and distal Ig domains in our model titin. This is useful
+%later when fitting to data: if the geometry of the prox. Ig and 
+%PEVK residues are unknown then the above stretch rates can be scaled
+%appropriately given a new set of prox. Ig/PEVK residues/ distal Ig
+%domains. Because this reference is being used for fitting, I will not
+%round the results even though a fraction of an Ig domain (or PEVK residue)
+%does not make physical sense.
+numberOfIGPDomains   =   68*(optSarcomereLength/optSarcomereLengthHuman);
+numberOfPEVKResidues = 2174*(optSarcomereLength/optSarcomereLengthHuman);
+numberOfIGDDomains   =   22*(optSarcomereLength/optSarcomereLengthHuman);
+
 
 
 %
@@ -420,44 +428,245 @@ deltaPEVK    = lfisoPEVKNorm     - loptPEVKNorm;
 
 disp('Remove kNormIgd');
 kNormIgp = kNormPevkIGd*(deltaIgdFree+deltaPEVK)/(deltaIgp);
-             
 
-% Note:
-%   The following parameters 
+   
 %
-%     slidingTimeConstant
-%     normCrossBridgeCyclingDamping
+% For a human soleus muscle titin's geometry (at least 1 isoform) has been
+% measured by Trombitas
 %
-%   related to the dynamics of the cross-bridge sliding joint were tuned 
-%   by hand. The slidingTimeConstant was made as large as possible without
-%   introducing artifacts in the replication of Herzog & Leonard 2002 nor
-%   the classic force-length and force-velocity expeirments.
+%   68 prox. Ig domains that can maximally extend to 25 nm (DuVall et al.)
+%   2174 PEVK residues that have a maximum length of 0.38 nm (Cantor & Schimmel)
+%   28 distal Ig domains that can maximally extend to 25 nm 
 %
-%   The parameters
-%     normCrossBridgeStiffness
-%     normCrossBridgeDamping
-%   Have been set by calculation to match the gain and phase shift 
-%   curves reported in Kirsch et al. for the 4Hz-90Hz perturbation trial.
-%3.7124
+%Trombitas K, Greaser M, French G, Granzier H. PEVK extension of human soleus 
+%muscle titin revealed by immunolabeling with the anti-titin antibody 9D10.
+%Journal of structural biology. 1998 Jan 1;122(1-2):188-96.
+%
+% Cantor CR, Schimmel PR. Biophysical Chemistry, Part I: The Conformation of 
+% Biological Molecules. Journal of Solid-Phase Biochemistry. 1980;5(3).
+%
+% *Note: the 0.38nm is mentioned on 254 as the sum of the bond lengths. In reality
+%        the bond lengths likely cannot be stretched into a line before the
+%        titin filament fails
+% 
+% DuVall MM, Gifford JL, Amrein M, Herzog W. Altered mechanical properties of 
+% titin immunoglobulin domain 27 in the presence of calcium. European Biophysics 
+% Journal. 2013 Apr;42(4):301-7.
+%
+lContourIGPNormHuman     = (68*(25/1000))    / optSarcomereLengthHuman;
+lContourPEVKNormHuman    = (2174*(0.38/1000))/ optSarcomereLengthHuman;
+lContourIGDFreeNormHuman = (28*(25/1000))    / optSarcomereLengthHuman;    
+
+
+% For a cat, I have no idea of the Ig domain and PEVK residue count.
+% A rabbit psoas has a titin molecule with
+%
+%   50 prox. Ig domains
+%   800 PEVK residues 
+%   22 distal Ig domains 
+% 
+% But Prado makes it clear that there are some muscles in a rabbit that
+% approach titin in the 3.7 kD range, which would be consistent with human
+% soleus titin. The rabbit psoas was one of the shorter ones.
+%
+% This information is really only needed to replicate Leonard, Joumaa
+% and Herzog 2010 ... which was performed on a rabbit psoas muscle.
+%
+%Prado LG, Makarenko I, Andresen C, Krüger M, Opitz CA, Linke WA. Isoform 
+% diversity of giant proteins in relation to passive and active contractile 
+% properties of rabbit skeletal muscles. The Journal of general physiology. 
+% 2005 Nov;126(5):461-80.
+%
+%
+optSarcomereLengthRabbit = 2.3; %Leonard et al. 2.2-2.4
+%Leonard TR, Joumaa V, Herzog W. An activatable molecular spring reduces 
+% muscle tearing during extreme stretching. Journal of biomechanics. 
+% 2010 Nov 16;43(15):3063-6.
+
+lContourIGPNormRabbit     = (50*(25/1000))    / optSarcomereLengthRabbit;
+lContourPEVKNormRabbit    = (800*(0.38/1000))/ optSarcomereLengthRabbit;
+lContourIGDFreeNormRabbit = (22*(25/1000))    / optSarcomereLengthRabbit;    
+
+switch flag_Cat1_Human2
+  case 1
+    lContourIGPNorm     = lContourIGPNormHuman    ;
+    lContourPEVKNorm    = lContourPEVKNormHuman   ;
+    lContourIGDFreeNorm = lContourIGDFreeNormHuman;
+  case 2
+    %I'm going to assume that feline titin geometry in skeletal muscle
+    %is a scaled version of that of a human soleus. Probably this isn't
+    %correct. The alternative is to use the geometry of a  rabbit psoas 
+    %titin isoforms measured by Prado et al. This was one of the lightest
+    %isoforms measured by Prado et al. (thus having shorter prox. Ig and 
+    %PEVK segments), so it would probably even be a poor predictor of
+    %the geometry of a randomly chosen muscle in a rabbit.
+    lContourIGPNorm     = lContourIGPNormHuman  ;
+    lContourPEVKNorm    = lContourPEVKNormHuman   ;
+    lContourIGDFreeNorm = lContourIGDFreeNormHuman;
+end
+
+
+
+% 2022/06/11
+% M.Millard
+%
+titinModelStickySpring      =0; %As in the PEVK element viscously sticks to actin
+% The idea is similar to that originally proposed by Rode et al., though the 
+% details differ: 
+%   - here there is one point in the PEVK segment that bonds to actin
+%   - the bond is viscous in nature and slides due to imbalanced forces
+%
+% Rode C, Siebert T, Blickhan R. Titin-induced force enhancement and force 
+% depression: a ‘sticky-spring’mechanism in muscle contractions?. Journal of 
+% theoretical biology. 2009 Jul 21;259(2):350-60.
+%
+% Though I've used this model for nearly 2 years, there are two problems with
+% it: 
+%
+% 1. Although I can replicate Leonard, Joumaa, and Herzog using this model, the
+%    PEVK + IgD segments are required to flex far far beyond their maximum 
+%    contour lengths. 
+%
+%  2022/06/15
+%    W.Herzog mentioned that there is up to 1 um of sarcomere hetereogeneity.
+%    This is on the order of magnitude that the PEVK segment could still be
+%    within actin overlap.
+%
+%    Also, part of the odd lengths I observed in my simulations happened because
+%    I did not include a sharp increase in force as the Ig and PEVK elements
+%    reached their respective contour lengths. I'm updating this now.
+%
+% 2. This model would not be able to replice the force
+%    traces in Figure 1 of Hisey et al.: when starting from a short length the 
+%    PEVK-actin bond would be much closer to the Z-line than the trials that
+%    begin at a longer length. Where the biological muscle ends up with a 
+%    peak and RFE that is very similar between trials, the simulation would
+%    produce very different force profiles: the trial in which the CE was
+%    activated at the shortest length would produce far larger forces than the
+%    other trials.
+%
+%  2022/06/16
+%    It's possible that if the proximal Ig segment has a finite slack length
+%    that the titin-actin attachment point does not change much at short
+%    lengths. This is somewhat dependent on what happens to titin as the CE
+%    becomes short:
+%
+%    :If prox. Ig has a slack length and the attachment point is the N2A epitope
+%     then the point of attachment will have a lower bound of the slack length
+%     of the Ig segment. This is a bit problematic (in the current simulation)
+%     because the PEVK segment is about half as stiff as it would need to be
+%     to develop the necessary additional tension to replicate Herzog & Leonard
+%     2002 with an attachment point at the N2A epitope. It's true that the PEVK 
+%     element becomes stiffer with activation, so maybe.
+%
+%    :If prox and distal Ig segments have a slack length and the attachment 
+%     point is in the middle of the PEVK segment, then what happens at short 
+%     lengths is not straight forward:
+%
+%       -If the prox and distal Ig segments remain at their slack lengths and 
+%        the PEVK stretches, then at shorter CE lengths the attachment point 
+%        will occur at shorter lengths: the model will fail to replicate 
+%        Hisey et al. under these circumstances.
+%
+%    To capture what happens at short lengths I would probably have to introduce
+%    another state so that I can track the IgP/PEVK and IgD/PEVK boundaries, as
+%    every point in the PEVK segment is a potential binding site to actin. 
+%    I think this will best be left for a later model.
+%  
+% Hisey B, Leonard TR, Herzog W. Does residual force enhancement increase with 
+% increasing stretch magnitudes?. Journal of biomechanics. 
+% 2009 Jul 22;42(10):1488-92.
+%
+
+titinModelActiveSpring        =1; 
+% After an email exhange with W.Herzog, he mentioned that his hypothesis is that
+% the PEVK segment, and perhaps also the Ig segment stiffen under exposure to 
+% calcium and this is what produces the large response in force. Single molecule
+% studies of both PEVK (Labeit et al.) and the I27 domains of Ig (DuVall) reveal
+% that both of these segments increase in stiffness when exposed to calcium. 
+% Calcium will bind to the PEVK region specifically (Tatsumi et al.). Although
+% mechanically realistic models of titin exist (Schappacher-Tilp et al.) these
+% require hundreds of state variables to represent the domains. Here we will use
+% a very simple lumped model to simulate the PEVK region's resistence to 
+% lengthening when exposed to calcium: it will be placed in parallel with a big
+% damper which is calcium activated, and saturates under low activation (perhaps
+% as low as 1%, Fukutani et al.).
+%
+% To do: check if pCa4 is consistent with a Ca^2+ concentraction in vivo
+%
+% Labeit D, Watanabe K, Witt C, Fujita H, Wu Y, Lahmers S, Funck T, Labeit S, 
+% Granzier H. Calcium-dependent molecular spring elements in the giant protein 
+% titin. Proceedings of the National Academy of Sciences. 2003 Nov 11;100(23):13716-21.
+%
+% Tatsumi R, Maeda K, Hattori A, Takahashi K. Calcium binding to an elastic 
+% portion of connectin/titin filaments. Journal of Muscle Research & Cell 
+% Motility. 2001 Feb;22(2):149-62.
+%
+% DuVall MM, Gifford JL, Amrein M, Herzog W. Altered mechanical properties of titin 
+% immunoglobulin domain 27 in the presence of calcium. European Biophysics 
+% Journal. 2013 Apr;42(4):301-7.
+%
+% Schappacher-Tilp G, Leonard T, Desch G, Herzog W. A novel three-filament model 
+% of force generation in eccentric contraction of skeletal muscles. PloS one. 
+% 2015 Mar 27;10(3):e0117634.
+%
+% Fukutani A, Herzog W. Residual Force Enhancement Is Preserved for Conditions 
+% of Reduced Contractile Force. Medicine and Science in Sports and Exercise. 
+% 2018 Jun 1;50(6):1186-91.
+%
+
+titinModel = titinModelStickySpring;
+normPevkToActinAttachmentPoint = 1.0;
+normContourLengthTitinProximal = 0;
+normContourLengthTitinDistal = 0;
+normLengthTitinFixed = 0;
+
+if(titinModel == titinModelStickySpring)
+    normContourLengthTitinProximal = lContourIGPNorm ...
+        + normPevkToActinAttachmentPoint*lContourPEVKNorm;
+    normContourLengthTitinDistal = (1-normPevkToActinAttachmentPoint)*lContourPEVKNorm ...
+        + lContourIGDFreeNorm; 
+    normLengthTitinFixed = loptT12Norm + loptIGDFixedNorm;
+end
+
+if(titinModel == titinModelActiveSpring)
+    normContourLengthTitinProximal = lContourIGPNorm; ...
+    normContourLengthTitinDistal = lContourPEVKNorm + lContourIGDFreeNorm; 
+    normLengthTitinFixed = loptT12Norm + loptIGDFixedNorm;
+end
+
 
 disp('  Note: set normECMDamping to 0, from 1e-4');
-%disp('  Note: set normCrossBridgeCyclingDampingLengthening to 1, from 120');
-disp('  Note: set normCrossBridgeCyclingDampingShortening to 1, from 0');
-disp('  Note: set time constant to 0.1 from 0.001');
 sarcomereProperties = ...
     struct( 'normActinLength'                   , normActinLength,...  
+            'normActinSmoothStepFunctionRadius' ,0.01,...
             'normMyosinHalfLength'              , normHalfMyosinLength,...
             'normMyosinBareHalfLength'          , normHalfMyosinBareLength,...
             'normZLineLength'                   , normZLineLength,...   
             'normSarcomereLengthZeroForce'      , normSarcomereLengthZeroForce,...       
             'ZLineToT12NormLengthAtOptimalFiberLength', loptT12Norm,...
-            'IGPNormLengthAtOptimalFiberLength'       , loptIGPNorm,...  
+            'IGPNormLengthAtOptimalFiberLength'       , loptIGPNorm,...              
             'PEVKNormLengthAtOptimalFiberLength'      , loptPEVKNorm,...
             'IGDFreeNormLengthAtOptimalFiberLengthHuman'   , loptIGDFreeNormHuman, ...
             'IGDFixedNormLengthAtOptimalFiberLengthHuman'  , loptIGDFixedNormHuman, ...
             'IGDFreeNormLengthAtOptimalFiberLength'        , loptIGDFreeNorm, ...
             'IGDFixedNormLengthAtOptimalFiberLength'       , loptIGDFixedNorm, ...            
-            'IGDTotalNormLengthAtOptimalFiberLength'       , loptIGDTotalNorm, ...               
+            'IGDTotalNormLengthAtOptimalFiberLength'       , loptIGDTotalNorm, ...    
+            'normContourLengthTitinProximal',   normContourLengthTitinProximal,...
+            'normContourLengthTitinDistal',   normContourLengthTitinDistal,...
+            'normLengthTitinFixed', normLengthTitinFixed,...
+            'IGPContourLengthNorm'                    , lContourIGPNorm,...
+            'PEVKContourLengthNorm'                   , lContourPEVKNorm,...
+            'IGDFreeContourLengthNorm'                , lContourIGDFreeNorm,...            
+            'IGPContourLengthHumanNorm'               , lContourIGPNormHuman,...
+            'PEVKContourLengthHumanNorm'              , lContourPEVKNormHuman,...
+            'IGDFreeContourLengthHumanNorm'           , lContourIGDFreeNormHuman,...  
+            'IGPContourLengthRabbitNorm'              , lContourIGPNormRabbit,...
+            'PEVKContourLengthRabbitNorm'             , lContourPEVKNormRabbit,...
+            'IGDFreeContourLengthRabbitNorm'          , lContourIGDFreeNormRabbit,...  
+            'numberOfIGPDomains', numberOfIGPDomains,...
+            'numberOfPEVKResidues', numberOfPEVKResidues,...
+            'numberOfIGDDomains', numberOfIGDDomains, ...
             'PEVKIGDNormStiffness'                    , kNormPevkIGd,...    
             'IGPNormStiffness'                        , kNormIgp,...
             'IGPNormStretchRate'                      , normStretchRateIgP,...
@@ -467,20 +676,24 @@ sarcomereProperties = ...
                 extraCellularMatrixPassiveForceFraction, ...
             'normCrossBridgeStiffness'         , 48.2636,... 
             'normCrossBridgeDamping'           , 0.1629,...
-            'normCrossBridgeCyclingDampingLengthening', 60.,...
-            'normCrossBridgeCyclingDampingShortening', 60.,...
-            'normMaxActiveTitinToActinDamping' , 20,... 
+            'normCrossBridgeCyclingDamping'    , 1.,...
+            'normMaxActiveTitinToActinDamping' , 65,... 
             'normPassiveTitinToActinDamping'   , 0.25, ...
-            'slidingTimeConstantShortening', 0.001,...
-            'slidingTimeConstantLengthening', 0.001,...
-            'fiberVelocityRegularization',1.0,...
-            'slidingDynamicsFastToSlowCoefficient',8,...
-            'slidingDynamicsFastToSlowOffsetCoefficient',0,...            
+            'normPevkToActinAttachmentPoint'   , normPevkToActinAttachmentPoint,... 
+            'slidingTimeConstant', 0.001,...
+            'forceVelocityCalibrationFactor',1.15,...          
             'activationTimeConstant',0.03,...
             'deactivationTimeConstant',0.03,...         
             'normECMDamping' , 0., ...
-            'scalePEVK', 1.0,...
+            'scaleTitinDistal', 1.0,...
             'scaleECM',  1.0,...
-            'scaleIGP',  1.0,...
+            'scaleTitinProximal',  1.0,...
             'fitCrossBridgeStiffnessDampingToKirch199490Hz',...
-             fitCrossBridgeStiffnessDampingToKirch199490Hz);
+             fitCrossBridgeStiffnessDampingToKirch199490Hz,...
+             'lowActivationThreshold',0.05,...
+             'lowActivationGain',1000,...
+             'titinModelType',titinModelStickySpring,...
+             'normPassivePevkDamping', 0.25,...
+             'normActivePevkDamping',100,...
+             'activationThresholdTitin',0.01); 
+

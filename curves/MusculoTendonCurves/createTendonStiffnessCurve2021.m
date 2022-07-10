@@ -46,45 +46,37 @@ function tendonStiffnessCurve = ...
 %
 %%
 
-assert(size(tendonForceLengthCurve.xpts,2)==1)
 
-xVal = zeros(1,size(tendonForceLengthCurve.xpts,2)*2+1);
+xV0 = zeros(1,size(tendonForceLengthCurve.xpts,2)+1);
 
-%Subdivide the tendonForceLengthCurve
-j=1;
-for i=1:1:(size(tendonForceLengthCurve.xpts,2))
-  xVal(1,j)=tendonForceLengthCurve.xpts(1,i);
-  j=j+1;
-  xVal(1,j)=tendonForceLengthCurve.xpts(1,i) ...
-      + 0.5*(tendonForceLengthCurve.xpts(end,i) ...
-            -tendonForceLengthCurve.xpts(1,i));
-  j=j+1;
+for i=1:1:size(tendonForceLengthCurve.xpts,2)
+  xV0(1,i)=tendonForceLengthCurve.xpts(1,i);
 end
-xVal(1,end)=tendonForceLengthCurve.xpts(end,end);
+xV0(1,end)=tendonForceLengthCurve.xpts(end,end);
 
 
 
+xV=xV0;
 
-yVal    = zeros(1,length(xVal));
-dydxVal = zeros(1,length(xVal));
+yVal = zeros(size(xV));
+dydxVal = zeros(size(xV));
 
- 
-yVal(1,1)    = 0;
-yVal(1,3)    = calcBezierYFcnXDerivative(xVal(1,i),tendonForceLengthCurve,1); 
-yVal(1,2)    = 0.5*(yVal(1,3)+yVal(1,1));
+for i=1:1:length(xV)
+  yVal(1,i)    = calcBezierYFcnXDerivative(xV(1,i),tendonForceLengthCurve,1);
+  dydxVal(1,i) = calcBezierYFcnXDerivative(xV(1,i),tendonForceLengthCurve,2);  
+end
 
-dydxVal(1,1)=0;
-dydxVal(1,2)=1.5*(yVal(1,3)-yVal(1,1))/(xVal(1,3)-xVal(1,1));
-dydxVal(1,3)=0;
+    
          
-xpts = zeros(6,length(yVal)-1);          
-ypts = zeros(6,length(yVal)-1);          
+xpts = zeros(6,length(xV)-1);          
+ypts = zeros(6,length(xV)-1);          
+
 
 for i=1:1:size(xpts,2)
   c = scaleCurviness(curviness); 
   p01 = calcQuinticBezierCornerControlPoints(...
-              xVal(1,i),   yVal(1,i), dydxVal(1,i), 0,...
-            xVal(1,i+1), yVal(1,i+1), dydxVal(1,i+1), 0, c);
+            xV(1,i), yVal(1,i), dydxVal(1,i), 0,...
+            xV(1,i+1), yVal(1,i+1), dydxVal(1,i+1), 0, c);
   xpts(:,i)=p01(:,1);
   ypts(:,i)=p01(:,2);
 end
@@ -93,7 +85,7 @@ end
 tendonStiffnessCurve.xpts    = xpts;
 tendonStiffnessCurve.ypts    = ypts;
 
-tendonStiffnessCurve.xEnd         = [xVal(1,1), xVal(1,end)];
+tendonStiffnessCurve.xEnd         = [xV(1,1), xV(1,end)];
 tendonStiffnessCurve.yEnd         = [yVal(1,1), yVal(1,end)];
 tendonStiffnessCurve.dydxEnd      = [dydxVal(1,1), dydxVal(1,end)];
 tendonStiffnessCurve.d2ydx2End    = [0, 0];

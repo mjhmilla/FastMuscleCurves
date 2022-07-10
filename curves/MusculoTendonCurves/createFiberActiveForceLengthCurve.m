@@ -5,8 +5,10 @@ function [activeForceLengthCurve, ...
                                       normActinLength, ...
                                       normZLineThickness,...
                                       normSarcomereLengthZeroForce,...
+                                      normCrossbridgeStiffness,...
                                       curviness, ...
                                       shiftLengthActiveForceLengthCurveDescendingCurve,...
+                                      flag_compensateForCrossbridgeStiffness,...
                                       flag_enableNumericallyNonZeroGradient, ...
                                       smallNumericallyNonZeroNumber,...
                                       computeIntegral, ...
@@ -76,6 +78,7 @@ if(flag_enableNumericallyNonZeroGradient == 1)
   p0DyDx =  smallNumericallyNonZeroNumber;  
   p5DyDx = -smallNumericallyNonZeroNumber;
 end
+
 
 % Corner 0: zero force happens ... for some (largely) unknown reason.
 %
@@ -147,6 +150,10 @@ netNormInterferenceTension     = 0.5;
 c1y = ( normShallowPlateauInterference*netNormInterferenceTension ...
       + normShallowPlateauOverlap )/normMaxOverlap;
 
+% if(flag_compensateForCrossbridgeStiffness==1)
+%   c1x = c1x - c1y/(c1y*normCrossbridgeStiffness);
+% end
+
 
 % Corner 3: maximum overlap, short end of the plateau
 %  
@@ -161,6 +168,9 @@ c1y = ( normShallowPlateauInterference*netNormInterferenceTension ...
 c2x = 1.0 - normMyosinBareLength; %The
 c2y = 1.0;
 
+% if(flag_compensateForCrossbridgeStiffness==1)
+%   c2x = c2x - c2y/(c2y*normCrossbridgeStiffness);
+% end
 
 % Corner 4: maximum overlap, long end of the plateau
 %  
@@ -175,6 +185,9 @@ c2y = 1.0;
 c3x = 1.0 + normMyosinBareLength; %The
 c3y = 1.0;
 
+% if(flag_compensateForCrossbridgeStiffness==1)
+%   c3x = c3x - c3y/(c3y*normCrossbridgeStiffness);
+% end
 
 % Corner 3: Overlap is lost
 %
@@ -188,6 +201,8 @@ c3y = 1.0;
 
 c4x = 2*normZLineThickness + 2*normActinLength + normMyosinLength;
 %c4y : already set 
+
+
 
 %%
 % Calculate the control point locations and slopes
@@ -225,9 +240,11 @@ p3x     = c2x + 0.5*c2c3x;
 p3y     = c2y + 0.5*c2c3y;
 p3DyDx  = (c2c3y)/(c2c3x);
 
-assert( abs(p3x - 1.0) < 1e-6);
-assert( abs(p3y - 1.0) < 1e-6);
-assert( abs(p3DyDx )   < 1e-6);
+if(flag_compensateForCrossbridgeStiffness==0)
+    assert( abs(p3x - 1.0) < 1e-6);
+    assert( abs(p3y - 1.0) < 1e-6);
+    assert( abs(p3DyDx )   < 1e-6);
+end
 
 p3x     = 1.;
 p3y     = 1.;
@@ -258,6 +275,16 @@ activeForceLengthCurveAnnotationPoints.y ...
                       c2y;...
                       c3y;...
                       c4y];                    
+
+if(flag_compensateForCrossbridgeStiffness==1)
+    %Since the stiffness is f*Kx, the strain introduced by a half
+    %cross bridge under an active force f is f/(f*Kx) or 1/Kx. For the 
+    %entire sarcomere its 2/Kx.
+    p1x = p1x - 2/(normCrossbridgeStiffness);
+    p2x = p2x - 2/(normCrossbridgeStiffness);
+    p3x = p3x - 2/(normCrossbridgeStiffness);
+    p4x = p4x - 2/(normCrossbridgeStiffness);    
+end
 
 %Compute the locations of the control points
 b0 = calcQuinticBezierCornerControlPoints( p0x, p0y,  p0DyDx, 0, ...

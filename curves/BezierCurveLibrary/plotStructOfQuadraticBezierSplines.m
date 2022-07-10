@@ -15,7 +15,11 @@ if(isempty(structOfFigures)==0)
 end
 
 for i=1:1:length(curveNames)
-  
+  disp(curveNames{i});
+  if(contains(curveNames{i},'activeForceLengthCurve'))
+    here=1;
+  end
+
   idxKeyWord = strfind(curveNames{i},ignoreStructsWithThisKeyWord);
   
   if(isempty(curveStruct.(curveNames{i})) == 0 ...

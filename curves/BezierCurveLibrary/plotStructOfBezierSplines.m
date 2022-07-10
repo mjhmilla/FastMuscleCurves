@@ -1,6 +1,6 @@
 function structOfFigures = plotStructOfBezierSplines( structOfFigures, ...
                                          curveStruct ,...
-                                         ignoreStructsWithThisKeyWord,...
+                                         ignoreStructsWithTheseKeyWords,...
                                          colorOverride, lineWidthOverride,...
                                          seriesLabelOverride,seriesNumberOverride,...
                                          flag_plotNumericalDerivatives)
@@ -16,10 +16,14 @@ end
 
 for i=1:1:length(curveNames)
   
-  idxKeyWord = strfind(curveNames{i},ignoreStructsWithThisKeyWord);
-  
+  flag_ignore=0;
+  for j=1:1:length(ignoreStructsWithTheseKeyWords)
+    if(contains(curveNames{i},ignoreStructsWithTheseKeyWords))
+        flag_ignore=1;
+    end
+  end  
   if(isempty(curveStruct.(curveNames{i})) == 0 ...
-     && isempty(idxKeyWord) == 1)
+     && flag_ignore == 0)
     
     if isempty(structOfFiguresFields)
         structOfFigures.(curveNames{i}) = figure;
@@ -29,7 +33,7 @@ for i=1:1:length(curveNames)
         figure(structOfFigures.(curveNames{i}));
     end
 
-    if(strcmp(curveNames{i},'fiberForceVelocityCurve')==1)
+    if(strcmp(curveNames{i},'activeForceLengthCurve')==1)
         here=1;
     end
 

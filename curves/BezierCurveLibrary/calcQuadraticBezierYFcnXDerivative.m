@@ -110,13 +110,17 @@ else
     %        (  2*u-2*u^2)*x1
     %        (        u^2)*x2
     % 0   = (x0-2*x1+x2)*u^2 + (-2*x0+2*x1)*u + (x0 - x)
-
+    % 0   =            a*u^2           +  b*u + c
     a = x0-2*x1+x2;
     b = -2*x0 +2*x1;
     c = x0-x;
 
     t0 = sqrt(b*b-4*a*c);
     u = (-b + t0)/(2*a);        
+
+    if(isnan(u) && abs(a) <= tol)
+        u = -c/b;
+    end
     if( u < 0-tol || u > 1+tol)
         u = (-b - t0)/(2*a);
     end

@@ -4,6 +4,17 @@ clc;
 close all;
 clear all;
 
+set(groot, 'defaultAxesFontSize',8);
+set(groot, 'defaultTextFontSize',8);
+set(groot, 'defaultAxesLabelFontSizeMultiplier',1.2);
+set(groot, 'defaultAxesTitleFontSizeMultiplier',1.2);
+set(groot, 'defaultAxesTickLabelInterpreter','latex');
+set(groot, 'defaultLegendInterpreter','latex');
+set(groot, 'defaultTextInterpreter','latex');
+set(groot, 'defaultAxesTitleFontWeight','bold');  
+set(groot, 'defaultFigurePaperUnits','centimeters');
+set(groot,'defaultFigurePaperType','A4');
+
 %Number of subdivisions of the quintic Bezier curves to use when
 %constructing the quadratic Bezier curves
 numberOfQuadraticSubdivisions= 2;
@@ -13,8 +24,8 @@ cubicZeroSecondDerivative    = 1;
 fitCrossBridgeStiffnessDampingToKirch199490Hz=0;
 flag_useFixedLambdaECM    = 0;
 
-flag_plotEveryCurve       = 0;
-flag_plotForceLengthDetail= 0;
+flag_plotEveryCurve       = 1;
+flag_plotForceLengthDetail= 1;
 
 
 pubOutputFolder                         = 'output/plots/MuscleCurves/';
@@ -87,7 +98,10 @@ createMusculoTendonFcn = ...
                                         argScaleFiberLength,...
                                         argScaleFiso,...
                                         flag_useOctave); 
-                                        
+      
+disp('Set to match the force-velocity curve of umat41 (EHTMM)');
+felineSoleusMusculotendonProperties.forceVelocityMultiplierAtHalfMaximumFiberVelocity=0.25;
+
 [felineSoleusNormMuscleCurves,...
  felineSoleusMusculotendonPropertiesUpd,...
  felineSoleusSarcomerePropertiesUpd,...
@@ -108,6 +122,27 @@ createMusculoTendonFcn = ...
       createMusculoTendonFcn,...
       flag_useOctave);
 
+lambdaECM = felineSoleusSarcomerePropertiesUpd.extraCellularMatrixPassiveForceFraction;    
+
+curveNames = fields(felineSoleusNormMuscleCurves);
+for indexCurve = 1:1:length(curveNames)
+    if(isstruct(felineSoleusNormMuscleCurves.(curveNames{indexCurve}))==1)
+        if(isempty(felineSoleusNormMuscleCurves.(curveNames{indexCurve}))==0)
+            if(contains( curveNames{indexCurve},'ECM'))
+                felineSoleusNormMuscleCurves.(curveNames{indexCurve}) = ...
+                    scaleCurveStruct(1,(1/lambdaECM),...
+                        felineSoleusNormMuscleCurves.(curveNames{indexCurve}));
+            end
+            if(contains( curveNames{indexCurve},'Titin'))
+                felineSoleusNormMuscleCurves.(curveNames{indexCurve}) = ...
+                    scaleCurveStruct(1,(1/(1-lambdaECM)),...
+                       felineSoleusNormMuscleCurves.(curveNames{indexCurve}));
+            end
+            
+        end
+    end
+end
+
 
 humanSkeletalMuscleCurves =struct('activeForceLengthCurve',[]);
 %Get the default sarcomere properties for a feline soles          
@@ -121,8 +156,9 @@ flag_Cat1_Human2                                = 2;
     flag_Cat1_Human2,...
     fitCrossBridgeStiffnessDampingToKirch199490Hz);
 
-curvinessActiveForceLength=1;
-
+curvinessActiveForceLength              = 1;
+flag_compensateForCrossbridgeStiffness  = 1;
+computeIntegral=0;
 [humanSkeletalMuscleCurves.activeForceLengthCurve, ...
   activeForceLengthCurveAnnotationPoints] ...
     = createFiberActiveForceLengthCurve(...
@@ -131,10 +167,13 @@ curvinessActiveForceLength=1;
           humanSoleusSarcomereProperties.normActinLength,...
           humanSoleusSarcomereProperties.normZLineLength,...
           humanSoleusSarcomereProperties.normSarcomereLengthZeroForce,...
+          humanSoleusSarcomereProperties.normCrossBridgeStiffness,...
           curvinessActiveForceLength, ... 
           shiftLengthActiveForceLengthCurveDescendingCurve,...
+          flag_compensateForCrossbridgeStiffness,...
           flag_enableNumericallyNonZeroGradients,...
           smallNumericallyNonZeroNumber,...
+          computeIntegral,...
           'humanSkeletalMuscle',...
           flag_useOctave); 
 
@@ -142,10 +181,12 @@ curvinessActiveForceLength=1;
 %Plot feline curves + experimental data from Herzog & Leonard 2002
 %%
 
+structOfFigures = [];
 
 if(flag_plotEveryCurve==1)
-    figH = plotStructOfBezierSplines( felineSoleusNormMuscleCurves,...
-                                      'Inverse');                          
+    figH = plotStructOfBezierSplines( structOfFigures,...
+                                      felineSoleusNormMuscleCurves,...
+                                      {'Inverse','use'},[],[],[],[],0);                          
     
     %%
     % Note the average offset between the active-force-length curve and
@@ -317,12 +358,27 @@ save('output/structs/defaultFelineSoleus.mat',...
 felineSoleusNormMuscleQuadraticCurves=[];
 curveNames = fieldnames(felineSoleusNormMuscleCurves);
 
+indexCurve=1;
+while indexCurve < length(curveNames)
+
+    if(contains(curveNames{indexCurve},'use')==1 ...
+        || isempty(felineSoleusNormMuscleCurves.(curveNames{indexCurve}))==1 ...
+        || isstruct(felineSoleusNormMuscleCurves.(curveNames{indexCurve}))==0)
+         curveNames(indexCurve)=[];
+         indexCurve=indexCurve-1;
+    end
+        indexCurve=indexCurve+1;
+end
+
+
 for indexCurve=1:1:length(curveNames)
-%    disp(curveNames{indexCurve});
-    felineSoleusNormMuscleQuadraticCurves.(curveNames{indexCurve}) = ...
-        convertToQuadraticBezierCurve(...
-            felineSoleusNormMuscleCurves.(curveNames{indexCurve}),...
-            numberOfQuadraticSubdivisions);
+        disp(curveNames{indexCurve});
+
+        felineSoleusNormMuscleQuadraticCurves.(curveNames{indexCurve}) = ...
+            convertToQuadraticBezierCurve(...
+                felineSoleusNormMuscleCurves.(curveNames{indexCurve}),...
+                numberOfQuadraticSubdivisions);
+    
 end
 
 
@@ -330,16 +386,28 @@ end
 % Convert all of the Bezier curves to cubic splines Bezier curves and write the
 % information to file
 %%
-felineSoleusNormMuscleCubicCurves=[];
-curveNames = fieldnames(felineSoleusNormMuscleCurves);
+% felineSoleusNormMuscleCubicCurves=[];
+% curveNames = fieldnames(felineSoleusNormMuscleCurves);
+% 
+% indexCurve=1;
+% while indexCurve < length(curveNames)
+% 
+%     if(contains(curveNames{indexCurve},'use')==1 ...
+%         || isempty(felineSoleusNormMuscleCurves.(curveNames{indexCurve}))==1 ...
+%         || isstruct(felineSoleusNormMuscleCurves.(curveNames{indexCurve}))==0)
+%          curveNames(indexCurve)=[];
+%          indexCurve=indexCurve-1;
+%     end
+%         indexCurve=indexCurve+1;
+% end
 
-for indexCurve=1:1:length(curveNames)
-    disp(curveNames{indexCurve});
-    felineSoleusNormMuscleCubicCurves.(curveNames{indexCurve}) = ...
-        convertToCubicBezierCurve(...
-            felineSoleusNormMuscleCurves.(curveNames{indexCurve}),...
-            numberOfCubicSubdivisions,cubicZeroSecondDerivative,1);
-end
+% for indexCurve=1:1:length(curveNames)
+%     disp(curveNames{indexCurve});
+%     felineSoleusNormMuscleCubicCurves.(curveNames{indexCurve}) = ...
+%         convertToCubicBezierCurve(...
+%             felineSoleusNormMuscleCurves.(curveNames{indexCurve}),...
+%             numberOfCubicSubdivisions,cubicZeroSecondDerivative,1);
+% end
 
 
 %%
@@ -349,6 +417,19 @@ end
 
 humanSkeletalMuscleQuadraticCurves=[];
 curveNames = fieldnames(humanSkeletalMuscleCurves);
+
+indexCurve=1;
+while indexCurve < length(curveNames)
+
+    if(contains(curveNames{indexCurve},'use')==1 ...
+        || isempty(felineSoleusNormMuscleCurves.(curveNames{indexCurve}))==1 ...
+        || isstruct(felineSoleusNormMuscleCurves.(curveNames{indexCurve}))==0)
+         curveNames(indexCurve)=[];
+         indexCurve=indexCurve-1;
+    end
+        indexCurve=indexCurve+1;
+end
+
 for indexCurve=1:1:length(curveNames)
     disp(curveNames{indexCurve});
     humanSkeletalMuscleQuadraticCurves.(curveNames{indexCurve}) = ...
@@ -361,31 +442,31 @@ end
 % Plot everything
 %%
 
-structOfFigures = [];
-colorOverride               = [1,1,1].*0.75;
-lineWidthOverride           = 2;
-plotNumericalDerivatives    = 0;
-structOfFigures = plotStructOfBezierSplines( structOfFigures, ...
-                    felineSoleusNormMuscleCurves,'Inverse',...
-                    colorOverride,lineWidthOverride,...
-                    'Feline soleus (5th order)',0,...
-                    plotNumericalDerivatives);
-
-colorOverride               = [0.5,0.5,1];
-lineWidthOverride           = 1.5;
-plotNumericalDerivatives    = 0;
-
-structOfFigures = plotStructOfBezierSplines( structOfFigures,...
-                    felineSoleusNormMuscleCubicCurves,'Inverse',...
-                    colorOverride,lineWidthOverride,...
-                    'Feline soleus (3rd order)',1,...
-                    plotNumericalDerivatives);
-
+%structOfFigures = [];
+% colorOverride               = [1,1,1].*0.75;
+% lineWidthOverride           = 2;
+% plotNumericalDerivatives    = 0;
+% structOfFigures = plotStructOfBezierSplines( structOfFigures, ...
+%                     felineSoleusNormMuscleCurves,'Inverse',...
+%                     colorOverride,lineWidthOverride,...
+%                     'Feline soleus (5th order)',0,...
+%                     plotNumericalDerivatives);
+% 
+% colorOverride               = [0.5,0.5,1];
+% lineWidthOverride           = 1.5;
+% plotNumericalDerivatives    = 0;
+% 
+% structOfFigures = plotStructOfBezierSplines( structOfFigures,...
+%                     felineSoleusNormMuscleCubicCurves,'Inverse',...
+%                     colorOverride,lineWidthOverride,...
+%                     'Feline soleus (3rd order)',1,...
+%                     plotNumericalDerivatives);
+% 
 colorOverride               = [1,0.5,0.5];
 lineWidthOverride           = 1.5;
 plotNumericalDerivatives    = 0;
 
-structOfFigures = plotStructOfBezierSplines( structOfFigures,...
+structOfFigures = plotStructOfQuadraticBezierSplines( structOfFigures,...
                     felineSoleusNormMuscleQuadraticCurves,'Inverse',...
                     colorOverride,lineWidthOverride,...
                     'Feline soleus (2nd order)',2,...
@@ -402,19 +483,32 @@ structOfFigures = plotStructOfQuadraticBezierSplines( structOfFigures,...
 
 
 %Write the fortran matrices
-quadraticBezierCurveFolder = 'output/tables/QuadraticBezierCurves/';
+quadraticBezierFortranCurveFolder = ['output/tables/QuadraticBezierFortranCurves/'];
+quadraticBezierCsvCurveFolder     = ['output/tables/QuadraticBezierCSVCurves/'];
 
 status = writeMuscleStructuresToFortran(...
     felineSoleusNormMuscleQuadraticCurves,...
     'felineSoleus',...
-    quadraticBezierCurveFolder);
+    quadraticBezierFortranCurveFolder);
 
 status = writeMuscleStructuresToFortran(...
     humanSkeletalMuscleCurves,...
     'humanSkeletalMuscle',...
-    quadraticBezierCurveFolder);
+    quadraticBezierFortranCurveFolder);
 
-   
+status = writeMuscleStructuresToCSV(...
+    felineSoleusNormMuscleQuadraticCurves,...
+    'felineSoleus',...
+    quadraticBezierCsvCurveFolder);
+
+status = writeMuscleStructuresToCSV(...
+    humanSkeletalMuscleQuadraticCurves,...
+    'humanSkeletalMuscle',...
+    quadraticBezierCsvCurveFolder);   
+
+muscleStruct = readMuscleStructuresFromCSV(quadraticBezierCsvCurveFolder);
+
+
 %%
 % Remove the directories ...
 %%

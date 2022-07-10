@@ -67,7 +67,10 @@ maximumNormalizedFiberVelocity = 4.5; % in units of norm fiber lengths/second
 % Ranatunga KW. The force‐velocity relation of rat fast‐and slow‐twitch muscles 
 % examined at different temperatures. The Journal of physiology. 1984 Jun 1;
 % 351(1):517-29.
-forceVelocityMultiplierAtHalfMaximumFiberVelocity = 0.1;  
+%forceVelocityMultiplierAtHalfMaximumFiberVelocity = 0.1;  
+
+%To match the force velocity curve of Kleinbach et al.
+forceVelocityMultiplierAtHalfMaximumFiberVelocity = 0.125;  
 
 
 % From Scott et al. pg 211 column 2, 2nd last paragraph

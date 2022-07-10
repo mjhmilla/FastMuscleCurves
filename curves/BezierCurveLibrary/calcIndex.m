@@ -62,8 +62,7 @@ if(ptsM(2,1)-ptsM(1,1) < 0)
     dxSign = -1;
 end
 
-i=1;
-while flag_found == 0 && i <= size(ptsM,2)
+for i=1:1:size(ptsM,2)
     
     if(dxSign == 1)
         if( (xReal >= ptsM(1,i) && xReal < ptsM(rows,i)) || ... 
@@ -78,7 +77,7 @@ while flag_found == 0 && i <= size(ptsM,2)
             flag_found = 1;
         end        
     end
-    i=i+1;
+    
 end
 
 %Check if the value xReal is identically the last point
@@ -90,7 +89,6 @@ end
 if(flag_found==0)
    here=1; 
 end
-
 
 assert( (flag_found == 1),... 
     'Error: A value of xReal was used that is not within the Bezier curve set.');

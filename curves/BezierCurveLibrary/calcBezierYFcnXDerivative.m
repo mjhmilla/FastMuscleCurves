@@ -63,16 +63,8 @@ nrow = size(curveParams.xpts,1);
 ncol = size(curveParams.xpts,2);
 xmin = curveParams.xEnd(1,1);
 xmax = curveParams.xEnd(1,2);
-
-col = 0;
-
-npts = size(curveParams.xpts,1);
-assert(npts >= 2);
-
-
-if( x >= 0.0239 && x <= 0.0241)
-    here=1;
-end
+%xmin = min(min(curveParams.xpts));
+%xmax = max(max(curveParams.xpts));
 
 if( (x < xmin) || (x > xmax) )
     idxEnd = NaN;
@@ -118,63 +110,46 @@ else
     xInterval      = [curveParams.xpts(   1,:); ...
                       curveParams.xpts(nrow,:)];
     col =  calcIndex(x, xInterval, options);
-
-    u = NaN;
-
+                               
     %Extract the vector of control points, and calculate
     %the control points that define the derivative curve
     xV  = curveParams.xpts(:,col);
     x1V = diff(xV) .*(nrow-1);
-   
-       
-    %Find the value of u that corresponds to the desired value of x    
-    %u      = (x-curveParams.xpts(1, col)) / (curveParams.xpts(nrow, col)-curveParams.xpts(1, col));
-    u = 0.5;
-    iterBisectionMax = 5;
-    iterNewtonMax    = 10;    
+    
+    
+    %Find the value of u that corresponds to the desired value of x
+    u      = (x-curveParams.xpts(1, col)) / (curveParams.xpts(nrow, col)-curveParams.xpts(1, col));
+    iter    = 1;
+    iterMax = 100;    
     tol     = eps*10;
     err     = tol*10;
-       
-    du = 0.25;
-    errBest=Inf;
-
-    for i=1:1:iterBisectionMax
-       uL=u-du;
-       uR=u+du;
-       errL=Inf;
-       errR=Inf;
-       if(uL >= 0 && uL <=1 )
-        errL   = abs(calc1DBezierCurveValue(u-du, xV) - x);
-       end
-       if(uR >= 0 && uR <=1 )
-        errR   = abs(calc1DBezierCurveValue(u+du, xV) - x);
-       end
-       if(errL < errR && errL< errBest)
-            u=uL;
-            errBest=errL;
-       end
-       if(errR < errL && errR < errBest)
-            u=uR;
-            errBest=errR;
-       end
-    end
-
-    iter    = 0;
-    while iter < iterNewtonMax && abs(err) > tol
+    
+    while iter < iterMax && abs(err) > tol
        err   = calc1DBezierCurveValue(u, xV) - x;
        derr = calc1DBezierCurveValue(u, x1V);
        
        if(abs(err) > tol && abs(derr) > eps)          
            du = -err/derr;
-           u  = u + du;                     
+           u  = u + du;
+           
+           %For very nonlinear curves Newton's method can
+           %become pathological. If u is outside [0,1] we
+           %kick it back into the interval by some random small
+           %amount.
+           if(u < 0 || u > 1.0)
+                if(u < 0)
+                   u = clampU(u);
+                   u = u + rand(1)*0.1;
+                else
+                   u = clampU(u);
+                   u = u - rand(1)*0.1;                    
+                end
+           end
        end
      
        iter = iter+1;
     end
-
-    assert(abs(err) <= tol);
-
-    
+        
     %Evaluate the desired derivative of y   
     switch der
         case -1
@@ -191,12 +166,12 @@ else
         case 0            
             yV  =  curveParams.ypts(:,col);
             val = calc1DBezierCurveValue(u, yV);
-           
         case 1
             yV  =  curveParams.ypts(:,col);
             y1V =  diff(yV) .*(nrow-1);
             x1  = calc1DBezierCurveValue(u, x1V);
-            y1  = calc1DBezierCurveValue(u, y1V);            
+            y1  = calc1DBezierCurveValue(u, y1V);
+            
             val = y1/x1;
         case 2
             x2V =  diff(x1V).*(nrow-2); 
@@ -204,7 +179,7 @@ else
             yV  =  curveParams.ypts(:,col);
             y1V =  diff(yV) .*(nrow-1);
             y2V =  diff(y1V).*(nrow-2);
-                
+    
             x1  = calc1DBezierCurveValue(u, x1V);
             y1  = calc1DBezierCurveValue(u, y1V);
             x2  = calc1DBezierCurveValue(u, x2V);
@@ -215,7 +190,6 @@ else
             
             %val = ((x1*y2-x2*y1)/(x1*x1))/x1;
             val = (y2 * t1 - y1 / t3 * x2) * t1;
-    
         case 3
             x2V = diff(x1V).*(nrow-2);
             x3V = diff(x2V).*(nrow-3);
@@ -248,7 +222,7 @@ else
                   + 2*y1/t3/x1 * t11 - t14 * x3) * t1 ...
                 - (y2*t1 - t14*x2)*t4*x2) * t1;              
     end
-end     
+            
     
-
+end
     
