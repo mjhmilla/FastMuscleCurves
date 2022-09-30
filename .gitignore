@@ -1,5 +1,7 @@
-curves_orig
-parameters_orig
+curves00
+curves01
+parameters00
+parameters01
 # ignore all data
 *.pdf
 *.fig
