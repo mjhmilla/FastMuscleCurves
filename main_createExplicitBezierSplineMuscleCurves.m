@@ -35,6 +35,8 @@ addpath('colornames/');
 
 [names,rgb] = colornames('SVG','FireBrick');
 
+flag_embedECMandTitinFractionIntoCurves = 0;
+
 flag_useOctave = 0;
 flag_enableNumericallyNonZeroGradients    = 1;
 
@@ -238,6 +240,7 @@ useTwoSidedTitinCurves  = 0;
                 flag_enableNumericallyNonZeroGradients,...
                 scaleOptimalFiberLengthCatSoleus,... 
                 scaleMaximumIsometricTensionCatSoleus,...
+                flag_embedECMandTitinFractionIntoCurves,...
                 flag_useOctave);
 
 save('output/structs/defaultFelineSoleus.mat',...
@@ -257,6 +260,7 @@ defaultHumanSoleus = createHumanSoleusModel(...
                         scaleOptimalFiberLengthHumanSoleus,...
                         scaleMaximumIsometricTensionHumanSoleus,...
                         felineSoleusPassiveForceLengthCurveSettings,...
+                        flag_embedECMandTitinFractionIntoCurves,...
                         flag_useOctave);
 
 
@@ -267,35 +271,35 @@ save('output/structs/defaultHumanSoleus.mat',...
 lambdaECMHuman = defaultHumanSoleus.sarcomere.extraCellularMatrixPassiveForceFraction;    
 lambdaECMFeline = defaultHumanSoleus.sarcomere.extraCellularMatrixPassiveForceFraction;  
 
-disp('Error: scaleCurveStruct is screwing up the extrapolation');
-
-curveNames = fields(defaultHumanSoleus.curves);
-for indexCurve = 1:1:length(curveNames)
-    if(isstruct(defaultHumanSoleus.curves.(curveNames{indexCurve}))==1)
-        if(isempty(defaultHumanSoleus.curves.(curveNames{indexCurve}))==0)
-            if(contains( curveNames{indexCurve},'ECM'))
-                defaultHumanSoleus.curves.(curveNames{indexCurve}) = ...
-                    scaleCurveStruct(1,(1/lambdaECMHuman),...
-                        defaultHumanSoleus.curves.(curveNames{indexCurve}));
-
-                defaultFelineSoleus.curves.(curveNames{indexCurve}) = ...
-                    scaleCurveStruct(1,(1/lambdaECMFeline),...
-                        defaultFelineSoleus.curves.(curveNames{indexCurve}));
-            end
-            if(contains( curveNames{indexCurve},'Titin'))
-                defaultHumanSoleus.curves.(curveNames{indexCurve}) = ...
-                    scaleCurveStruct(1,(1/(1-lambdaECMHuman)),...
-                       defaultHumanSoleus.curves.(curveNames{indexCurve}));
-
-
-                defaultFelineSoleus.curves.(curveNames{indexCurve}) = ...
-                    scaleCurveStruct(1,(1/(1-lambdaECMFeline)),...
-                        defaultFelineSoleus.curves.(curveNames{indexCurve}));                
-            end
-            
-        end
-    end
-end
+% disp('Error: scaleCurveStruct is screwing up the extrapolation');
+% 
+% curveNames = fields(defaultHumanSoleus.curves);
+% for indexCurve = 1:1:length(curveNames)
+%     if(isstruct(defaultHumanSoleus.curves.(curveNames{indexCurve}))==1)
+%         if(isempty(defaultHumanSoleus.curves.(curveNames{indexCurve}))==0)
+%             if(contains( curveNames{indexCurve},'ECM'))
+%                 defaultHumanSoleus.curves.(curveNames{indexCurve}) = ...
+%                     scaleCurveStruct(1,(1/lambdaECMHuman),...
+%                         defaultHumanSoleus.curves.(curveNames{indexCurve}));
+% 
+%                 defaultFelineSoleus.curves.(curveNames{indexCurve}) = ...
+%                     scaleCurveStruct(1,(1/lambdaECMFeline),...
+%                         defaultFelineSoleus.curves.(curveNames{indexCurve}));
+%             end
+%             if(contains( curveNames{indexCurve},'Titin'))
+%                 defaultHumanSoleus.curves.(curveNames{indexCurve}) = ...
+%                     scaleCurveStruct(1,(1/(1-lambdaECMHuman)),...
+%                        defaultHumanSoleus.curves.(curveNames{indexCurve}));
+% 
+% 
+%                 defaultFelineSoleus.curves.(curveNames{indexCurve}) = ...
+%                     scaleCurveStruct(1,(1/(1-lambdaECMFeline)),...
+%                         defaultFelineSoleus.curves.(curveNames{indexCurve}));                
+%             end
+%             
+%         end
+%     end
+% end
 
 
 %defaultHumanSoleus.curves =struct('activeForceLengthCurve',[]);
