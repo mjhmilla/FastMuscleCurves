@@ -3,6 +3,7 @@ curves01
 parameters00
 parameters01
 # ignore all data
+*.csv
 *.pdf
 *.fig
 *.png
