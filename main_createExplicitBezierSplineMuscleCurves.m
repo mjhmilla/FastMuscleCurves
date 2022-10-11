@@ -175,6 +175,9 @@ useTwoSidedTitinCurves  = 0;
 % due to this effect.
 
 
+fprintf(['\n\ndefaultFelineSoleus\n\n']);
+
+
 [ defaultFelineSoleus,...
   activeForceLengthCurveAnnotationPoints,...
   felineSoleusActiveForceLengthDataDefault,...
@@ -198,7 +201,7 @@ useTwoSidedTitinCurves  = 0;
 save('output/structs/defaultFelineSoleus.mat',...
      'defaultFelineSoleus');                      
 
-
+fprintf(['\n\ndefaultHumanSoleus\n\n']);
 defaultHumanSoleus = createHumanSoleusModel(...
                         normPevkToActinAttachmentPointDefault,...
                         normMaxActiveTitinToActinDamping,...                        
@@ -220,10 +223,44 @@ save('output/structs/defaultHumanSoleus.mat',...
      'defaultHumanSoleus');                      
 
 
+normPevkToActinAttachmentPointZero = 0;
+normPevkToActinAttachmentPointOne  = 1;
+
+fprintf(['\n\nzeroHumanSoleus\n\n']);
+zeroHumanSoleus = createHumanSoleusModel(...
+                        normPevkToActinAttachmentPointZero,...
+                        normMaxActiveTitinToActinDamping,...                        
+                        normFiberLengthAtOneNormPassiveForceDefault,... 
+                        ecmForceFractionHumanSoleus,...
+                        linearTitinModel,...
+                        useCalibratedCurves,...
+                        useTwoSidedTitinCurves,...
+                        smallNumericallyNonZeroNumber,...
+                        flag_enableNumericallyNonZeroGradients,...
+                        scaleOptimalFiberLengthHumanSoleus,...
+                        scaleMaximumIsometricTensionHumanSoleus,...
+                        felineSoleusPassiveForceLengthCurveSettings,...
+                        flag_embedECMandTitinFractionIntoCurves,...
+                        flag_useOctave);
 
 
-lambdaECMHuman = defaultHumanSoleus.sarcomere.extraCellularMatrixPassiveForceFraction;    
-lambdaECMFeline = defaultHumanSoleus.sarcomere.extraCellularMatrixPassiveForceFraction;  
+fprintf(['\n\noneHumanSoleus\n\n']);
+oneHumanSoleus = createHumanSoleusModel(...
+                        normPevkToActinAttachmentPointOne,...
+                        normMaxActiveTitinToActinDamping,...                        
+                        normFiberLengthAtOneNormPassiveForceDefault,... 
+                        ecmForceFractionHumanSoleus,...
+                        linearTitinModel,...
+                        useCalibratedCurves,...
+                        useTwoSidedTitinCurves,...
+                        smallNumericallyNonZeroNumber,...
+                        flag_enableNumericallyNonZeroGradients,...
+                        scaleOptimalFiberLengthHumanSoleus,...
+                        scaleMaximumIsometricTensionHumanSoleus,...
+                        felineSoleusPassiveForceLengthCurveSettings,...
+                        flag_embedECMandTitinFractionIntoCurves,...
+                        flag_useOctave);
+
 
 
 
@@ -410,6 +447,8 @@ end
 %%
 
 felineSoleusNormMuscleQuadraticCurves=[];
+humanSoleusNormMuscleQuadraticCurves=[];
+
 curveNames = fieldnames(defaultFelineSoleus.curves);
 
 indexCurve=1;
@@ -424,7 +463,7 @@ while indexCurve < length(curveNames)
         indexCurve=indexCurve+1;
 end
 
-
+fprintf('\n\nConverting 6th order curves to 4th order\n\n');
 for indexCurve=1:1:length(curveNames)
         disp(curveNames{indexCurve});
 
@@ -432,36 +471,13 @@ for indexCurve=1:1:length(curveNames)
             convertToQuadraticBezierCurve(...
                 defaultFelineSoleus.curves.(curveNames{indexCurve}),...
                 numberOfQuadraticSubdivisions);
-    
+
+        humanSoleusNormMuscleQuadraticCurves.(curveNames{indexCurve}) = ...
+            convertToQuadraticBezierCurve(...
+                defaultHumanSoleus.curves.(curveNames{indexCurve}),...
+                numberOfQuadraticSubdivisions);        
 end
 
-
-%%
-% Convert all of the Bezier curves to cubic splines Bezier curves and write the
-% information to file
-%%
-% felineSoleusNormMuscleCubicCurves=[];
-% curveNames = fieldnames(defaultFelineSoleus.curves);
-% 
-% indexCurve=1;
-% while indexCurve < length(curveNames)
-% 
-%     if(contains(curveNames{indexCurve},'use')==1 ...
-%         || isempty(defaultFelineSoleus.curves.(curveNames{indexCurve}))==1 ...
-%         || isstruct(defaultFelineSoleus.curves.(curveNames{indexCurve}))==0)
-%          curveNames(indexCurve)=[];
-%          indexCurve=indexCurve-1;
-%     end
-%         indexCurve=indexCurve+1;
-% end
-
-% for indexCurve=1:1:length(curveNames)
-%     disp(curveNames{indexCurve});
-%     felineSoleusNormMuscleCubicCurves.(curveNames{indexCurve}) = ...
-%         convertToCubicBezierCurve(...
-%             defaultFelineSoleus.curves.(curveNames{indexCurve}),...
-%             numberOfCubicSubdivisions,cubicZeroSecondDerivative,1);
-% end
 
 
 %%
@@ -470,7 +486,18 @@ end
 %%
 
 humanSkeletalMuscleQuadraticCurves=[];
+zeroHumanTitinQuadraticCurves=[];
+oneHumanTitinQuadraticCurves=[];
 curveNames = fieldnames(defaultHumanSoleus.curves);
+
+curveNamesTitin = [];
+for i=1:1:length(curveNames)
+    if(contains(curveNames{i},'Titin') && contains(curveNames{i},'use')==0)
+        curveNamesTitin = [curveNamesTitin,{curveNames{i}}];
+    end
+end
+
+
 
 indexCurve=1;
 while indexCurve < length(curveNames)
@@ -481,8 +508,12 @@ while indexCurve < length(curveNames)
          curveNames(indexCurve)=[];
          indexCurve=indexCurve-1;
     end
+
+    
         indexCurve=indexCurve+1;
 end
+
+fprintf('\n\nConverting 6th order curves to 4th order (human)\n\n');
 
 for indexCurve=1:1:length(curveNames)
     disp(curveNames{indexCurve});
@@ -492,33 +523,38 @@ for indexCurve=1:1:length(curveNames)
             numberOfQuadraticSubdivisions);
 end
 
+
+fprintf('\n\nConverting 6th order curves to 4th order (human-one-titin)\n\n');
+
+for indexCurve=1:1:length(curveNamesTitin)
+    disp(curveNamesTitin{indexCurve});
+    oneHumanTitinQuadraticCurves.(curveNamesTitin{indexCurve}) = ...
+        convertToQuadraticBezierCurve(...
+            oneHumanSoleus.curves.(curveNamesTitin{indexCurve}),...
+            numberOfQuadraticSubdivisions);
+end
+
+fprintf('\n\nConverting 6th order curves to 4th order (human-zero-titin)\n\n');
+
+for indexCurve=1:1:length(curveNamesTitin)
+    disp(curveNamesTitin{indexCurve});
+    zeroHumanTitinQuadraticCurves.(curveNamesTitin{indexCurve}) = ...
+        convertToQuadraticBezierCurve(...
+            zeroHumanSoleus.curves.(curveNamesTitin{indexCurve}),...
+            numberOfQuadraticSubdivisions);
+end
+
+%Add the titin curves for interpolation
+
 %%
 % Plot everything
 %%
 
-%structOfFigures = [];
-% colorOverride               = [1,1,1].*0.75;
-% lineWidthOverride           = 2;
-% plotNumericalDerivatives    = 0;
-% structOfFigures = plotStructOfBezierSplines( structOfFigures, ...
-%                     defaultFelineSoleus.curves,'Inverse',...
-%                     colorOverride,lineWidthOverride,...
-%                     'Feline soleus (5th order)',0,...
-%                     plotNumericalDerivatives);
-% 
-% colorOverride               = [0.5,0.5,1];
-% lineWidthOverride           = 1.5;
-% plotNumericalDerivatives    = 0;
-% 
-% structOfFigures = plotStructOfBezierSplines( structOfFigures,...
-%                     felineSoleusNormMuscleCubicCurves,'Inverse',...
-%                     colorOverride,lineWidthOverride,...
-%                     'Feline soleus (3rd order)',1,...
-%                     plotNumericalDerivatives);
-% 
 colorOverride               = [1,0.5,0.5];
 lineWidthOverride           = 1.5;
 plotNumericalDerivatives    = 0;
+
+fprintf('\n\nPlotting quadratic Bezier splines: feline soleus\n\n');
 
 structOfFigures = plotStructOfQuadraticBezierSplines( structOfFigures,...
                     felineSoleusNormMuscleQuadraticCurves,'Inverse',...
@@ -529,6 +565,9 @@ structOfFigures = plotStructOfQuadraticBezierSplines( structOfFigures,...
 colorOverride               = [0,0,0];
 lineWidthOverride           = 1;
 plotNumericalDerivatives    = 0;
+
+fprintf('\n\nPlotting quadratic Bezier splines: human soleus\n\n');
+
 structOfFigures = plotStructOfQuadraticBezierSplines( structOfFigures,...
                     humanSkeletalMuscleQuadraticCurves,'Inverse',...
                     colorOverride,lineWidthOverride,...
@@ -537,31 +576,89 @@ structOfFigures = plotStructOfQuadraticBezierSplines( structOfFigures,...
 
 
 %Write the fortran matrices
-quadraticBezierFortranCurveFolder = ['output/tables/QuadraticBezierFortranCurves/'];
-quadraticBezierCsvCurveFolder     = ['output/tables/QuadraticBezierCSVCurves/'];
+quadraticBezierFortranCurveFelineFolder = ['output/tables/QuadraticBezierFortranFelineCurves/'];
+quadraticBezierCsvCurveFelineFolder     = ['output/tables/QuadraticBezierCSVFelineCurves/'];
+
+quadraticBezierFortranCurveHumanFolder = ['output/tables/QuadraticBezierFortranHumanCurves/'];
+quadraticBezierCsvCurveHumanFolder     = ['output/tables/QuadraticBezierCSVHumanCurves/'];
+
+
+quadraticBezierFortranCurveFolderZero = ['output/tables/QuadraticBezierFortranCurvesZero/'];
+quadraticBezierCsvCurveFolderZero     = ['output/tables/QuadraticBezierCSVCurvesZero/'];
+
+quadraticBezierFortranCurveFolderOne = ['output/tables/QuadraticBezierFortranCurvesOne/'];
+quadraticBezierCsvCurveFolderOne     = ['output/tables/QuadraticBezierCSVCurvesOne/'];
+
+
+
+%%
+% Generate the Fortran code to create each curve ...
+%%
+
+fprintf('\n\nwriting Fortran code: feline soleus\n\n');
 
 status = writeMuscleStructuresToFortran(...
     felineSoleusNormMuscleQuadraticCurves,...
     'felineSoleus',...
-    quadraticBezierFortranCurveFolder);
+    quadraticBezierFortranCurveFelineFolder);
+
+fprintf('\n\nwriting Fortran code: human soleus\n\n');
 
 status = writeMuscleStructuresToFortran(...
-    defaultHumanSoleus.curves,...
+    humanSoleusNormMuscleQuadraticCurves,...
     'humanSkeletalMuscle',...
-    quadraticBezierFortranCurveFolder);
+    quadraticBezierFortranCurveHumanFolder);
+
+
+fprintf('\n\nwriting Fortran code: human soleus titin (one)\n\n');
+
+status = writeMuscleStructuresToFortran(...
+    oneHumanTitinQuadraticCurves,...
+    'humanSkeletalMuscleTitinOne',...
+    quadraticBezierFortranCurveFolderOne);
+
+fprintf('\n\nwriting Fortran code: human soleus titin (zero)\n\n');
+
+status = writeMuscleStructuresToFortran(...
+    zeroHumanTitinQuadraticCurves,...
+    'humanSkeletalMuscleTitinZero',...
+    quadraticBezierFortranCurveFolderZero);
+
+
+%%
+% CSV file of the control points for each curve ...
+%%
+
+fprintf('\n\nwriting Bezier curves to CSV: feline soleus\n\n');
 
 status = writeMuscleStructuresToCSV(...
     felineSoleusNormMuscleQuadraticCurves,...
     'felineSoleus',...
-    quadraticBezierCsvCurveFolder);
+    quadraticBezierCsvCurveFelineFolder);
+
+
+fprintf('\n\nwriting Bezier curves to CSV: human soleus\n\n');
 
 status = writeMuscleStructuresToCSV(...
     humanSkeletalMuscleQuadraticCurves,...
     'humanSkeletalMuscle',...
-    quadraticBezierCsvCurveFolder);   
+    quadraticBezierCsvCurveHumanFolder);  
 
-muscleStruct = readMuscleStructuresFromCSV(quadraticBezierCsvCurveFolder);
+muscleStruct = readMuscleStructuresFromCSV(quadraticBezierCsvCurveHumanFolder);
 
+fprintf('\n\nwriting Bezier curves to CSV: human titin soleus (zero)\n\n');
+
+status = writeMuscleStructuresToCSV(...
+    zeroHumanTitinQuadraticCurves,...
+    'humanSkeletalMuscleTitinZero',...
+    quadraticBezierCsvCurveFolderZero);  
+
+fprintf('\n\nwriting Bezier curves to CSV: human titin soleus (one)\n\n');
+
+status = writeMuscleStructuresToCSV(...
+    oneHumanTitinQuadraticCurves,...
+    'humanSkeletalMuscleTitinOne',...
+    quadraticBezierCsvCurveFolderOne);  
 
 %%
 % Remove the directories ...

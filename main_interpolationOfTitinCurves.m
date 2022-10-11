@@ -39,6 +39,18 @@ flag_embedECMandTitinFractionIntoCurves = 0;
 flag_useOctave = 0;
 flag_enableNumericallyNonZeroGradients    = 1;
 
+flag_usingOctave    = 0;
+plotWidth           = 6;
+plotHeight          = 6;
+pageWidth           = 21;
+pageHeight          = 29.7;
+plotHorizMarginCm   = 2;
+plotVertMarginCm    = 2;
+numberOfVerticalPlotRows      = 1;
+numberOfHorizontalPlotColumns = 2;
+
+plotConfigGeneric;
+
 % 1. Active force length curve vs. data
 % Solution: There were some initial descrepencies between the experimental force
 %length data and a theoretical curve. These errors almost completely go
@@ -93,7 +105,7 @@ normMaxActiveTitinToActinDamping = 65;
 
 normPevkToActinAttachmentPointZero = 0;
 normPevkToActinAttachmentPointOne  = 1;
-normPevkToActinAttachmentPointMid = 0.8175;
+normPevkToActinAttachmentPointMid = 0.5;%^0.8175;
 normPevkToActinAttachmentPointDefault=0.5;
 
 normFiberLengthAtOneNormPassiveForceDefault = 1.367732948060934e+00;
@@ -170,7 +182,7 @@ useTwoSidedTitinCurves  = 0;
 % beginning at a longer length would see some additional force reduction
 % due to this effect.
 
-titinModel = linearTitinModel;
+titinModel = linearTitinModel; %wlcTitinModel;
 
 [ defaultFelineSoleus,...
   activeForceLengthCurveAnnotationPoints,...
@@ -246,6 +258,165 @@ midHumanSoleus = createHumanSoleusModel(...
 
 
 
+figInterpTitin = figure;
+
+n01 = [0:0.01:1]';
+
+structNamesPlot = {'zeroHumanSoleus',...
+                   'midHumanSoleus',...
+                   'oneHumanSoleus'};
+
+structColors = [1,0,0;...
+                1,0,1;...
+                0,0,1];
+
+curveNamesPlot  = {'forceLengthProximalTitinCurve',...
+                   'forceLengthDistalTitinCurve'};
+
+xSamples = zeros(length(n01),1);
+ySamples = zeros(length(n01),1);
+
+%Plot the interpolated curves
+
+maxBlend = 11;
+
+for idxCurve = 1:1:length(curveNamesPlot)
+    
+    for idxBlend = 1:1:maxBlend
+
+        curveStruct = [];
+
+        curveStructA = zeroHumanSoleus.curves.(curveNamesPlot{idxCurve});
+        curveStructB = oneHumanSoleus.curves.(curveNamesPlot{idxCurve});
+
+        A = 1 - ((idxBlend-1)/(maxBlend-1));
+        B = 1 - A;
+
+        curveStruct = curveStructA;
+
+        curveStruct.name = sprintf('%d',round(A*100,2));
+        curveStruct.xpts = A.*curveStructA.xpts + B.*curveStructB.xpts;
+        curveStruct.ypts = A.*curveStructA.ypts + B.*curveStructB.ypts;
+        curveStruct.xEnd = A.*curveStructA.xEnd + B.*curveStructB.xEnd;
+        curveStruct.yEnd = A.*curveStructA.yEnd + B.*curveStructB.yEnd;
+        curveStruct.dydxEnd = [0,0].*nan;
+        curveStruct.d2ydx2End = [0,0].*nan;
+        curveStruct.integral = [];
+
+        if(idxCurve==1 && idxBlend==1)
+            disp('First and second derivatives cannot be averaged at the ends');
+            disp('... I will probably have to calculate and cache these values');
+            disp('... and only update if the parameter is changed');
+        end
+
+        dydx0 = calcBezierYFcnXDerivative(curveStruct.xEnd(1,1), curveStruct, 1);
+        dydx1 = calcBezierYFcnXDerivative(curveStruct.xEnd(1,2), curveStruct, 1);
+
+        d2ydx20 = calcBezierYFcnXDerivative(curveStruct.xEnd(1,1), curveStruct, 2);
+        d2ydx21 = calcBezierYFcnXDerivative(curveStruct.xEnd(1,2), curveStruct, 2);
+    
+        curveStruct.dydxEnd = [dydx0,dydx1];
+        curveStruct.d2ydx2End = [d2ydx20,d2ydx21];
+        
+
+        xEnd = curveStruct.xEnd;
+        xA = xEnd(1,1)-0.1*(diff(xEnd));
+        xB = xEnd(1,2)+0.1*(diff(xEnd));        
+    
+        for idxPt=1:1:length(n01)            
+    
+            xS = xA + n01(idxPt,1)*(xB-xA);
+            yS = calcBezierYFcnXDerivative(xS, curveStruct, 0);
+    
+            xSamples(idxPt,1) = xS;
+            ySamples(idxPt,1) = yS;
+                   
+        end
+    
+        lineColor = structColors(1,:).*A + structColors(end,:).*B;
+
+        subplot('Position', reshape(subPlotPanel(1,idxCurve,:),1,4));
+    
+        plot(xSamples(:,1),ySamples(:,1),...
+            'Color',lineColor.*0.5 + [1,1,1].*0.5,...
+            'LineWidth', 2);
+        hold on;
+        text(xSamples(end,1),ySamples(end,1)+0.05,curveStruct.name,...
+             'Color',lineColor.*0.5 + [1,1,1].*0.5);
+        hold on;
+    end
+    
+    title(curveNamesPlot{idxCurve});
+    xlabel('Norm. Length');
+    ylabel('Norm. Force');
+    
+    box off;
+    %legend;
+    %legend boxoff;
+
+end
+
+
+%Plot the constructed curves
+for idxStruct = 1:1:length(structNamesPlot)
+    for idxCurve = 1:1:length(curveNamesPlot)
+        
+        curveStruct = [];
+        seriesLabel = '';
+        if(contains(structNamesPlot{idxStruct},'zeroHumanSoleus'))
+            curveStruct = zeroHumanSoleus.curves.(curveNamesPlot{idxCurve});
+            seriesLabel = '0';
+        end
+        if(contains(structNamesPlot{idxStruct},'midHumanSoleus'))
+            curveStruct = midHumanSoleus.curves.(curveNamesPlot{idxCurve});
+            seriesLabel = '0.5';
+        end
+        if(contains(structNamesPlot{idxStruct},'oneHumanSoleus'))
+            curveStruct = oneHumanSoleus.curves.(curveNamesPlot{idxCurve});
+            seriesLabel = '1';
+        end
+
+        idxData = (idxStruct-1)*length(curveNamesPlot) + idxCurve;
+
+        xEnd = curveStruct.xEnd;
+        xA = xEnd(1,1)-0.1*(diff(xEnd));
+        xB = xEnd(1,2)+0.1*(diff(xEnd));        
+
+        for idxPt=1:1:length(n01)            
+
+            xS = xA + n01(idxPt,1)*(xB-xA);
+            yS = calcBezierYFcnXDerivative(xS, curveStruct, 0);
+
+            xSamples(idxPt,1) = xS;
+            ySamples(idxPt,1) = yS;
+                   
+        end
+
+        subplot('Position', reshape(subPlotPanel(1,idxCurve,:),1,4));
+
+        plot(xSamples(:,1),ySamples(:,1),...
+            'Color',[0,0,0],...
+            'LineWidth', 1,...
+            'DisplayName',structNamesPlot{idxStruct});
+        hold on;
+
+        text(xSamples(end,1),ySamples(end,1),seriesLabel);
+        hold on;
+
+        if(idxData==1 || ...
+           idxData == length(curveNamesPlot)*length(structNamesPlot))
+            
+            title(curveNamesPlot{idxCurve});
+            xlabel('Norm. Length');
+            ylabel('Norm. Force');
+            
+            box off;
+            %legend;
+            %legend boxoff;
+        end
+    end
+
+end
 
 
 curveNames  = {'forceLengthProximalTitinCurve',...
@@ -283,3 +454,5 @@ for c=1:1:length(curveNames)
     disp(yError);
     
 end
+
+
