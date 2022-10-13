@@ -1,4 +1,4 @@
-function success = writeMuscleStructuresToFortran(structOfMuscleCurves,...
+function success = writeBezierCurveStructuresToFortran(structOfMuscleCurves,...
     muscleName,folder)
 
 success=0;
@@ -28,21 +28,16 @@ for indexCurve=1:1:length(curveNames)
     %         end
     %     end
     
-        fprintf(fid,'      real, dimension(%d,%d)::xpts \n',...
-            size(xpts,1),size(xpts,2));
-        fprintf(fid,'      real, dimension(%d,%d)::ypts \n',...
-            size(ypts,1),size(ypts,2));
-        fprintf(fid,'      real, dimension(%d,%d)::xEnd \n',...
-            size(xEnd,1),size(xEnd,2));
-        fprintf(fid,'      real, dimension(%d,%d)::yEnd \n',...
-            size(yEnd,1),size(yEnd,2));
-        fprintf(fid,'      real, dimension(%d,%d)::dydxEnd \n',...
-            size(dydxEnd,1),size(dydxEnd,2));
-        fprintf(fid,'      real, dimension(%d,%d)::d2ydx2End \n',...
-            size(d2ydx2End,1),size(d2ydx2End,2));
-        
-        fid=writeArrayToFortran(fid,xpts,'xpts');
-        fid=writeArrayToFortran(fid,ypts,'ypts');
+        fprintf(fid,'      real*8, dimension(%d,%d)::xPts \n',   size(xpts,1),size(xpts,2));
+        fprintf(fid,'      real*8, dimension(%d,%d)::yPts \n',   size(ypts,1),size(ypts,2));
+        fprintf(fid,'      real*8, dimension(%d)::xEnd \n',      size(xEnd,2));
+        fprintf(fid,'      real*8, dimension(%d)::yEnd \n',      size(yEnd,2));
+        fprintf(fid,'      real*8, dimension(%d)::dydxEnd \n',   size(dydxEnd,2));
+        fprintf(fid,'      real*8, dimension(%d)::d2ydx2End \n', size(d2ydx2End,2));
+        fprintf(fid,'      ncol = %d\n',size(xpts,2));
+
+        fid=writeArrayToFortran(fid,xpts,'xPts');
+        fid=writeArrayToFortran(fid,ypts,'yPts');
         fid=writeArrayToFortran(fid,xEnd,'xEnd');
         fid=writeArrayToFortran(fid,yEnd,'yEnd');
         fid=writeArrayToFortran(fid,dydxEnd,    'dydxEnd');

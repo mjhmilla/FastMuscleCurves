@@ -309,12 +309,55 @@ for idxCurve = 1:1:length(curveNamesPlot)
             disp('... and only update if the parameter is changed');
         end
 
-        dydx0 = calcBezierYFcnXDerivative(curveStruct.xEnd(1,1), curveStruct, 1);
-        dydx1 = calcBezierYFcnXDerivative(curveStruct.xEnd(1,2), curveStruct, 1);
+        dydx0C = calcBezierYFcnXDerivative(curveStruct.xEnd(1,1), curveStruct, 1);
 
-        d2ydx20 = calcBezierYFcnXDerivative(curveStruct.xEnd(1,1), curveStruct, 2);
-        d2ydx21 = calcBezierYFcnXDerivative(curveStruct.xEnd(1,2), curveStruct, 2);
-    
+            xpts10  = diff(curveStruct.xpts(:,1)).*(length(curveStruct.xpts(:,1))-1);
+            ypts10  = diff(curveStruct.ypts(:,1)).*(length(curveStruct.xpts(:,1))-1);
+            x10     = xpts10(1,1);
+            y10     = ypts10(1,1);            
+            dydx0   = y10/x10;
+
+            assert(abs(dydx0-dydx0C)<eps*100);
+
+        dydx1C = calcBezierYFcnXDerivative(curveStruct.xEnd(1,2), curveStruct, 1);
+
+            xpts11  = diff(curveStruct.xpts(:,end)).*(length(curveStruct.xpts(:,end))-1);
+            ypts11  = diff(curveStruct.ypts(:,end)).*(length(curveStruct.xpts(:,end))-1);
+            x11     = xpts11(end,1);
+            y11     = ypts11(end,1);            
+            dydx1   = y11/x11;
+
+            assert(abs(dydx1-dydx1C)<eps*100);
+
+        d2ydx20C = calcBezierYFcnXDerivative(curveStruct.xEnd(1,1), curveStruct, 2);
+            
+            xpts20  = diff(xpts10).*(length(xpts10)-1);
+            ypts20  = diff(ypts10).*(length(ypts10)-1);
+            x20     = xpts20(1,1);
+            y20     = ypts20(1,1);
+
+            t1 = 1/x10;
+            t3 = x10*x10;            
+            d2ydx20 = (y20 * t1 - y10 / t3 * x20) * t1;            
+
+            assert(abs(d2ydx20-d2ydx20C)<eps*10000);
+
+
+        d2ydx21C = calcBezierYFcnXDerivative(curveStruct.xEnd(1,2), curveStruct, 2);
+
+            xpts21  = diff(xpts11).*(length(xpts11)-1);
+            ypts21  = diff(ypts11).*(length(ypts11)-1);
+            x21     = xpts21(end,1);
+            y21     = ypts21(end,1);
+
+            t1 = 1/x11;
+            t3 = x11*x11;            
+            d2ydx21 = (y21 * t1 - y11 / t3 * x21) * t1;            
+
+            %fprintf('%e\t%d\t%d\n',abs(d2ydx21-d2ydx21C),idxCurve,idxBlend);
+
+            assert(abs(d2ydx21-d2ydx21C)<eps*10000);
+
         curveStruct.dydxEnd = [dydx0,dydx1];
         curveStruct.d2ydx2End = [d2ydx20,d2ydx21];
         
@@ -330,7 +373,7 @@ for idxCurve = 1:1:length(curveNamesPlot)
     
             xSamples(idxPt,1) = xS;
             ySamples(idxPt,1) = yS;
-                   
+
         end
     
         lineColor = structColors(1,:).*A + structColors(end,:).*B;

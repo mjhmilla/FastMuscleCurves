@@ -1,4 +1,4 @@
-function muscleCurves = readMuscleStructuresFromCSV(folder)
+function muscleCurves = readBezierCurveStructuresFromCSV(folder)
 
 
 
