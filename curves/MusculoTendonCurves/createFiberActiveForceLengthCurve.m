@@ -72,11 +72,11 @@ p0DyDx = 0;
 p5DyDx = 0;
 
 if(flag_enableNumericallyNonZeroGradient == 1)
-  c0y    =  10*smallNumericallyNonZeroNumber;
-  c4y    =  10*smallNumericallyNonZeroNumber;
+  c0y    =  smallNumericallyNonZeroNumber;
+  c4y    =  smallNumericallyNonZeroNumber;
 
-  p0DyDx =  smallNumericallyNonZeroNumber;  
-  p5DyDx = -smallNumericallyNonZeroNumber;
+  p0DyDx =  smallNumericallyNonZeroNumber/10;  
+  p5DyDx = -smallNumericallyNonZeroNumber/10;
 end
 
 

@@ -194,7 +194,7 @@ dydxC = 0;
                                         
 if(flag_enableNumericallyNonZeroGradients==1)
   yC    = smallNumericallyNonZeroNumber;
-  dydxC = smallNumericallyNonZeroNumber;
+  dydxC = smallNumericallyNonZeroNumber/10.;
 end
 
 

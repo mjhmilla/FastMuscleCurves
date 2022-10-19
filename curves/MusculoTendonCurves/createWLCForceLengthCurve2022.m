@@ -141,7 +141,7 @@ assert(normLengthContour > normLengthToe, ...
 %%
 c = scaleCurviness(curviness);
 xZero = normLengthZero;
-yZero = kZero*xZero;
+yZero = kZero*xZero*10.0;
 
 xIso = normLengthToe;
 yIso = normForceToe;

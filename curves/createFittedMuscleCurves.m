@@ -308,7 +308,7 @@ if(isempty(dataPassiveForceLength) == 0)
   kZero           = 0;
   
   if(flag_enableNumericallyNonZeroGradients)
-    kZero = smallNumericallyNonZeroNumber;
+    kZero = smallNumericallyNonZeroNumber/10.;
   end         
   
   kLow            = 0.2;
@@ -378,7 +378,7 @@ else
   fToe  = 1;
   kZero = 0;
   if(flag_enableNumericallyNonZeroGradients)
-    kZero = smallNumericallyNonZeroNumber;
+    kZero = smallNumericallyNonZeroNumber/10.;
   end         
   kLow  = 0.2;
   kToe  = 2/(normLengthToe-normLengthZero);
@@ -520,7 +520,7 @@ curvinessTendon = 0.5;
 computeIntegral = 1;
 minimumSlope    = 0;
 if(flag_enableNumericallyNonZeroGradients==1)
-  minimumSlope = smallNumericallyNonZeroNumber;
+  minimumSlope = smallNumericallyNonZeroNumber/10.;
 end
 
 normMuscleCurves.tendonForceLengthCurve = ...
@@ -586,3 +586,34 @@ normMuscleCurves.tendonStiffnessNormCurve = ...
 
 
 fprintf('  tendonStiffnessNormCurve created\n');
+
+%%
+%
+% Compressive Force-Length Curve
+%   : to prevent the CE from going below its minimum fiber length
+%
+%%
+
+lceOpt      = musculotendonProperties.optimalFiberLength; 
+lceATMin    = musculotendonProperties.minimumFiberLengthAlongTendon;
+fiberLengthAlongTendonAtOneNormForce = lceATMin/lceOpt;
+
+alphaOpt    = musculotendonProperties.pennationAngle;
+lceOptATN   = (lceOpt*cos(alphaOpt)/lceOpt);
+
+fiberLengthAlongTendonAtZeroNormForce = ...
+    fiberLengthAlongTendonAtOneNormForce ...
+    +(lceOptATN/10.0);
+
+curviness = 0.5;
+
+normMuscleCurves.compressiveForceLengthCurve = ...
+    createCompressiveForceLengthCurve2022(...
+                    fiberLengthAlongTendonAtOneNormForce,...
+                    fiberLengthAlongTendonAtZeroNormForce,...
+                    curviness, ...
+                    musculotendonProperties.name,...
+                    flag_useOctave);
+
+  
+fprintf('  compressiveForceLengthCurve created\n');

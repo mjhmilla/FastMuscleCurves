@@ -135,7 +135,8 @@ assert( (curviness>=0 && curviness <= 1),...
 %%
 c = scaleCurviness(curviness);
 xZero = normLengthZero;
-yZero = kZero*xZero;
+yZero = kZero*xZero*10.0; %This way the curve cannot generate a zero value
+                         %for any positive length.
 
 xIso = normLengthToe;
 yIso = normForceToe;
