@@ -654,19 +654,31 @@ if(flag_plotQuadraticHumanSoleus==1)
 end
 
 %Write the fortran matrices
-quadraticBezierFortranCurveFelineFolder = ['output/tables/QuadraticBezierFortranFelineCurves/'];
-quadraticBezierCsvCurveFelineFolder     = ['output/tables/QuadraticBezierCSVFelineCurves/'];
+% quadraticBezierFortranCurveFelineFolder = ['output/tables/QuadraticBezierFortranFelineCurves/'];
+% quadraticBezierCsvCurveFelineFolder     = ['output/tables/QuadraticBezierCSVFelineCurves/'];
+% 
+% quadraticBezierFortranCurveHumanFolder = ['output/tables/QuadraticBezierFortranHumanCurves/'];
+% quadraticBezierCsvCurveHumanFolder     = ['output/tables/QuadraticBezierCSVHumanCurves/'];
+% 
+% 
+% quadraticBezierFortranCurveFolderZero = ['output/tables/QuadraticBezierFortranCurvesZero/'];
+% quadraticBezierCsvCurveFolderZero     = ['output/tables/QuadraticBezierCSVCurvesZero/'];
+% 
+% quadraticBezierFortranCurveFolderOne = ['output/tables/QuadraticBezierFortranCurvesOne/'];
+% quadraticBezierCsvCurveFolderOne     = ['output/tables/QuadraticBezierCSVCurvesOne/'];
 
-quadraticBezierFortranCurveHumanFolder = ['output/tables/QuadraticBezierFortranHumanCurves/'];
-quadraticBezierCsvCurveHumanFolder     = ['output/tables/QuadraticBezierCSVHumanCurves/'];
+quadraticBezierFortranCurveFelineFolder = ['output/tables/FortranExport/QuadraticBezierFelineCurves/'];
+quadraticBezierCsvCurveFelineFolder     = ['output/tables/curves/QuadraticBezierFelineCurves/'];
+
+quadraticBezierFortranCurveHumanFolder = ['output/tables/FortranExport/QuadraticBezierHumanCurves/'];
+quadraticBezierCsvCurveHumanFolder     = ['output/tables/curves/QuadraticBezierHumanCurves/'];
 
 
-quadraticBezierFortranCurveFolderZero = ['output/tables/QuadraticBezierFortranCurvesZero/'];
-quadraticBezierCsvCurveFolderZero     = ['output/tables/QuadraticBezierCSVCurvesZero/'];
+quadraticBezierFortranCurveFolderZero = ['output/tables/FortranExport/QuadraticBezierCurvesZero/'];
+quadraticBezierCsvCurveFolderZero     = ['output/tables/curves/QuadraticBezierCurvesZero/'];
 
-quadraticBezierFortranCurveFolderOne = ['output/tables/QuadraticBezierFortranCurvesOne/'];
-quadraticBezierCsvCurveFolderOne     = ['output/tables/QuadraticBezierCSVCurvesOne/'];
-
+quadraticBezierFortranCurveFolderOne = ['output/tables/FortranExport/QuadraticBezierCurvesOne/'];
+quadraticBezierCsvCurveFolderOne     = ['output/tables/curves/QuadraticBezierCurvesOne/'];
 
 
 %%

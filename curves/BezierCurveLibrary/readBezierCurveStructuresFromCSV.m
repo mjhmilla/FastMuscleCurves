@@ -10,7 +10,7 @@ folderContents = dir;
 cd(workingDir)
 
 
-
+muscleCurves=[];
 
 for indexFile=3:1:length(folderContents)
 

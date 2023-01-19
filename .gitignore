@@ -1,9 +1,4 @@
-curves00
-curves01
-parameters00
-parameters01
-# ignore all data
-*.csv
+postprocessing00
 *.pdf
 *.fig
 *.png
@@ -15,5 +10,13 @@ parameters01
 *.asv
 *.txt
 *.mat
+!colornames/colornames.mat
 *.svg
 *.f
+*.csv
+!experiments/TrombitasGreaserFrenchGranzier1998/Trombitas1998_Figure5.csv
+!experiments/TrombitasGreaserFrenchGranzier1998/Trombitas1998_Figure6.csv
+!experiments/HerzogLeonard2002/data/dataHerzogLeonard2002Figure5.csv
+!experiments/HerzogLeonard2002/data/dataHerzogLeonard2002Figure6and7A.csv
+!experiments/HerzogLeonard2002/data/dataHerzogLeonard2002Figure7B.csv
+!experiments/HerzogLeonard2002/data/dataHerzogLeonard2002Figure7C.csv
