@@ -66,7 +66,7 @@ flag_enableNumericallyNonZeroGradients  = 0;
 smallNumericallyNonZeroNumber           = sqrt(sqrt(eps));
 
 eZero           = 1.0;
-eIso            = 4.9;
+eIso            = 0.049;
 kIso            = 1.375/eIso;
 fToe            = 2./3.;
 curvinessTendon = 0.5;
@@ -92,11 +92,12 @@ tendonForceLengthCurve = ...
 x0      = tendonForceLengthCurve.xEnd(1,1);
 x1      = tendonForceLengthCurve.xEnd(1,2);
 y0      = tendonForceLengthCurve.yEnd(1,1);
-y1      = tendonForceLengthCurve.yEnd(1,1);
+y1      = tendonForceLengthCurve.yEnd(1,2);
 dydx0   = tendonForceLengthCurve.dydxEnd(1,1);
 dydx1   = tendonForceLengthCurve.dydxEnd(1,2);
 
-[A,B,C,D,E,F] = calcTanhSegmentCoefficients(x0,x1,dydx0,dydx1,y0,[]);
+
+[A,B,C,D,E,F] = calcTanhSegmentCoefficients(x0,x1,dydx0,dydx1,y0,[],-0.00525,0.5);
 
 tendonForceLengthTanhCoeffs = [A,B,C,D,E,F];
 
@@ -125,10 +126,12 @@ for i=1:1:3
     figure(figCurves);
     subplot('Position',reshape(subPlotPanel(1,i,:),1,4));
     plot( ltN,tendonBezierSample(:,i),...
-          'Color',bezierColor,'DisplayName','Bezier');
+          'Color',bezierColor,'LineWidth',1,...
+          'DisplayName','Bezier');
     hold on;
     plot( ltN,tendonTanhSample(:,i),...
-          'Color',tanhColor,'DisplayName','Tanh');
+          'Color',tanhColor,'LineWidth',1,...
+          'DisplayName','Tanh');
     hold on;
     box off;
 
@@ -140,7 +143,8 @@ for i=1:1:3
             legend('Location','NorthEast');            
             legend boxoff;
         case 2
-            plot([x0;x1],[y0;y1],'o','Color',[1,0,0]);
+            plot([x0;x1],[y0;y1],'o','MarkerSize',5,...
+                'Color',bezierColor,'MarkerFaceColor',[1,1,1]);
             hold on;
             title('Tendon Curve Value');            
             xlabel('Norm. Length ($\ell/\ell^T_s$)')
@@ -148,10 +152,13 @@ for i=1:1:3
 
             
         case 3
+            plot([x0;x1],[dydx0;dydx1],'o','MarkerSize',5,...
+                'Color',bezierColor,'MarkerFaceColor',[1,1,1]);
+            hold on;
+
             title('Derivative');                        
             xlabel('Norm. Length ($\ell/\ell^T_s$)')
             ylabel('Norm. Stiffness ($\delta \tilde{f^T} / \delta \tilde{\ell^T}$)');
-            plot([x0;x1],[dydx0;dydx1],'o','Color',[1,0,0]);
             hold on;
             
         otherwise
@@ -159,6 +166,7 @@ for i=1:1:3
     end
 
 end
+
 
 
 

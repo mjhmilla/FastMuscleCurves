@@ -1,5 +1,5 @@
 function [A,B,C,D,E,F] = ...
-    calcTanhSegmentCoefficients(x0,x1,dydx0,dydx1,yNegInf,yInf)
+    calcTanhSegmentCoefficients(x0,x1,dydx0,dydx1,yNegInf,yInf, xShift, xScale)
 
 assert(isempty(yNegInf) || isempty(yInf), ...
     ['Error: this function has been formulated so that the function ',...
@@ -8,8 +8,8 @@ assert(isempty(yNegInf) || isempty(yInf), ...
      'not both. Set the yNegInf or yInf that you do not care about to zero. ']);
 
 %B and C can be adjusted
-B = x0 + (x1-x0)*0.5;
-C = ((x1-x0)*0.5)*(1/2);
+B = x0 + (x1-x0)*0.5 + xShift;
+C = ((x1-x0)*0.5)*(1/2)*xScale;
 
 %A and D must take these values to meet the derivative constraints in the 
 %limit
