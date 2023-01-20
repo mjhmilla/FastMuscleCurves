@@ -1,4 +1,4 @@
-function value = calcHyperbolicSeriesDerivative(x, coeffs, derivativeOrder)
+function value = calcTanhSeriesDerivative(x, coeffs, derivativeOrder)
 
 value = nan;
 
@@ -19,16 +19,14 @@ switch derivativeOrder
             x2=x*x;
             arg = abs((x-B)/C);
             
-            int_lncoshx=arg*arg*0.5-log(2)*arg; %Limit, apparently
-%            int_lncoshx=arg*arg*0.5-log(2)*arg;
-%            for j=1:1:10
-%                int_lncoshx = int_lncoshx + ((-1)^(j))*(exp(-2*j*arg)/(2*j*j));
-%            end
+            int_logExpOne = 0;%log(1.+exp(-2*arg));
+            int_logCoshArg= int_logExpOne -log(2)*arg+0.5*arg*arg; 
 
-           inty = inty + ((C+E-B*D)*x ...
-                       + D*x2*0.5 ...
-                       + A*C*(int_lncoshx)...
-                       + F);            
+
+            inty = inty + ((C+E-B*D)*x ...
+                        + D*x2*0.5 ...
+                        + A*C*(int_logCoshArg)...
+                        + F);            
          end
  
          value=inty;
@@ -40,9 +38,10 @@ switch derivativeOrder
             C = coeffs(i,3);
             D = coeffs(i,4);
             E = coeffs(i,5);
-
-
-            y = y + (-B*D + D*x + A*C*log( cosh((x-B)/C) ) + C + E);
+            arg = (x-B)/C;
+            logCoshArg = log(1.+exp(-2*arg))-log(2)+arg;
+    
+            y = y + (D*(x-B) + A*C*(logCoshArg) + C + E);
         end
         value=y;
     case 1
@@ -51,8 +50,7 @@ switch derivativeOrder
             A = coeffs(i,1);
             B = coeffs(i,2);
             C = coeffs(i,3);
-            D = coeffs(i,4);
-
+            D = coeffs(i,4);            
             dy = dy + (A*tanh((x-B)/C) + D);
         end
         value=dy;

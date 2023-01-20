@@ -81,6 +81,10 @@ if( (x < xmin) || (x > xmax) )
                'Integral function has not been computed for this curve');
             if(x <= xmin)
                val = 0; 
+            elseif(x > xmin && x <= xmax)
+                val = interp1(curveParams.integral.xptsN,...
+                              curveParams.integral.yptsN,...
+                              x);
             else
                len = length(curveParams.integral.xptsN);
                y0  = curveParams.integral.yptsN(len);
