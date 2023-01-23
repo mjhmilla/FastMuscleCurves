@@ -6,6 +6,7 @@ switch derivativeOrder
     case -1
         inty = 0;
 
+%       Not yet ready.           
         for i=1:1:size(coeffs,1)
             A = coeffs(i,1);
             B = coeffs(i,2);

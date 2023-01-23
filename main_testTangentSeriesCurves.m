@@ -38,6 +38,7 @@ addpath(parametersDirectoryTreeCurves);
 figCurves = figure;
 bezierColor = [0,0,0];
 tanhColor   = [0,0,1];
+tanColor   = [1,0,1];
 
 numberOfVerticalPlotRows      = 1;
 numberOfHorizontalPlotColumns = 3;
@@ -98,14 +99,17 @@ dydx1   = tendonForceLengthCurve.dydxEnd(1,2);
 
 
 [A,B,C,D,E,F] = calcTanhSegmentCoefficients(x0,x1,dydx0,dydx1,y0,[],-0.00525,0.5);
-
 tendonForceLengthTanhCoeffs = [A,B,C,D,E,F];
+
+[A,B,C,D,E,F] = calcTanSegmentCoefficients(x0,x1,dydx0,dydx1,y0,[], 1.0,-0.0045,0.125);
+tendonForceLengthTanCoeffs = [A,B,C,D,E,F];
 
 npts = 100;
 
 ltN                     = zeros(npts,3);
 tendonBezierSample      = zeros(npts,3);
 tendonTanhSample        = zeros(npts,3);
+tendonTanSample         = zeros(npts,3);
 
 
 lNStart = x0-(x1-x0)*0.5;
@@ -121,6 +125,9 @@ for i=1:1:3
         tendonTanhSample(j,i) = calcTanhSeriesDerivative(ltN(j,1),...
                                        tendonForceLengthTanhCoeffs,i-2);
 
+        tendonTanSample(j,i) = calcTanSeriesDerivative(ltN(j,1),...
+                                       tendonForceLengthTanCoeffs,i-2);
+
     end
 
     figure(figCurves);
@@ -132,6 +139,10 @@ for i=1:1:3
     plot( ltN,tendonTanhSample(:,i),...
           'Color',tanhColor,'LineWidth',1,...
           'DisplayName','Tanh');
+    hold on;
+    plot( ltN,tendonTanSample(:,i),...
+          'Color',tanColor,'LineWidth',1,...
+          'DisplayName','Tan');
     hold on;
     box off;
 

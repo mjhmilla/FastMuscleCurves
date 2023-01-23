@@ -61,7 +61,7 @@ if(isempty(yInf) == 0)
     E = dydx1   - (-A*C*log(2) + C );
 end
 
-F = nan;
+F = 0;
 
 
 
