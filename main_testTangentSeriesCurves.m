@@ -2,6 +2,10 @@ clc;
 close all;
 clear all;
 
+flag_plotBezierCurves=1;
+flag_plotTanhCurves  =1;
+flag_plotTanCurves   =0;
+
 set(groot, 'defaultAxesFontSize',8);
 set(groot, 'defaultTextFontSize',8);
 set(groot, 'defaultAxesLabelFontSizeMultiplier',1.2);
@@ -98,7 +102,7 @@ dydx0   = tendonForceLengthCurve.dydxEnd(1,1);
 dydx1   = tendonForceLengthCurve.dydxEnd(1,2);
 
 
-[A,B,C,D,E,F] = calcTanhSegmentCoefficients(x0,x1,dydx0,dydx1,y0,[],-0.00525,0.5);
+[A,B,C,D,E,F] = calcTanhSegmentCoefficients(x0,x1,dydx0,dydx1,y0,[],-0.00525,0.9,.0);
 tendonForceLengthTanhCoeffs = [A,B,C,D,E,F];
 
 [A,B,C,D,E,F] = calcTanSegmentCoefficients(x0,x1,dydx0,dydx1,y0,[], 1.0,-0.0045,0.125);
@@ -132,18 +136,25 @@ for i=1:1:3
 
     figure(figCurves);
     subplot('Position',reshape(subPlotPanel(1,i,:),1,4));
-    plot( ltN,tendonBezierSample(:,i),...
-          'Color',bezierColor,'LineWidth',1,...
-          'DisplayName','Bezier');
-    hold on;
-    plot( ltN,tendonTanhSample(:,i),...
-          'Color',tanhColor,'LineWidth',1,...
-          'DisplayName','Tanh');
-    hold on;
-%     plot( ltN,tendonTanSample(:,i),...
-%           'Color',tanColor,'LineWidth',1,...
-%           'DisplayName','Tan');
-%     hold on;
+
+    if(flag_plotBezierCurves==1)
+        plot( ltN,tendonBezierSample(:,i),...
+              'Color',bezierColor,'LineWidth',1,...
+              'DisplayName','Bezier');
+        hold on;
+    end
+    if(flag_plotTanhCurves==1)
+        plot( ltN,tendonTanhSample(:,i),...
+              'Color',tanhColor,'LineWidth',1,...
+              'DisplayName','Tanh');
+        hold on;
+    end
+    if(flag_plotTanCurves==1)
+        plot( ltN,tendonTanSample(:,i),...
+              'Color',tanColor,'LineWidth',1,...
+              'DisplayName','Tan');
+        hold on;
+    end
     box off;
 
     switch(i)

@@ -1,5 +1,5 @@
 function [A,B,C,D,E,F] = ...
-    calcTanhSegmentCoefficients(x0,x1,dydx0,dydx1,yNegInf,yInf, xShift, xScale)
+    calcTanhSegmentCoefficients(x0,x1,dydx0,dydx1,yNegInf,yInf, xShift, xScale, xAtIntYZero)
 
 assert(isempty(yNegInf) || isempty(yInf), ...
     ['Error: this function has been formulated so that the function ',...
@@ -61,7 +61,15 @@ if(isempty(yInf) == 0)
     E = dydx1   - (-A*C*log(2) + C );
 end
 
-F = 0;
+x=xAtIntYZero;
+C2 = C*C;
+
+inty= 0.5.*((A*C2).*polylog(2,-exp((2.*(B-x))./C)) ...
+                     + A.*(B-x).*(B+C*log(4)-x) ...
+                     + x.*(2.*(-B*D+C+E) + D.*x)...
+                     );
+
+F = -inty;
 
 
 

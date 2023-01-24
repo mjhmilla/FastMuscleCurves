@@ -5,32 +5,29 @@ value = nan;
 switch derivativeOrder
     case -1
         inty = 0;
-% 
-% %       Not yet ready.           
-%         for i=1:1:size(coeffs,1)
-%             A = coeffs(i,1);
-%             B = coeffs(i,2);
-%             C = coeffs(i,3);
-%             D = coeffs(i,4);
-%             E = coeffs(i,5);
-%             F = coeffs(i,6);
-%             x2=x*x;
-%             arg = abs((x-B)/C);
-% 
-%             x2=x*x;
-%             arg = abs((x-B)/C);
-%             
-%             int_logExpOne = 0;%log(1.+exp(-2*arg));
-%             int_logCoshArg= int_logExpOne -log(2)*arg+0.5*arg*arg; 
-% 
-% 
-%             inty = inty + ((C+E-B*D)*x ...
-%                         + D*x2*0.5 ...
-%                         + A*C*(int_logCoshArg)...
-%                         + F);            
-%          end
+
+        
+        for i=1:1:size(coeffs,1)
+            A = coeffs(i,1);
+            B = coeffs(i,2);
+            C = coeffs(i,3);
+            D = coeffs(i,4);
+            E = coeffs(i,5);
+            F = coeffs(i,6);
+
+            x2=x*x;
+            arg = abs((x-B)/C);
+            C2 = C*C;
+            
+            inty=inty+...
+                0.5.*((A*C2).*polylog(2,-exp((2.*(B-x))./C)) ...
+                     + A.*(B-x).*(B+C*log(4)-x) ...
+                     + x.*(2.*(-B*D+C+E) + D.*x)...
+                     ) ...
+               + F;         
+         end
  
-         value=NaN;
+         value=inty;
     case 0
         y = 0;
         for i=1:1:size(coeffs,1)
@@ -59,3 +56,5 @@ switch derivativeOrder
     otherwise
         assert(0,'Error: derivative order must be [-1,0,1]');
 end
+
+value=real(value);
