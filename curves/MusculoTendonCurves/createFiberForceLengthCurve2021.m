@@ -35,7 +35,7 @@
 %%
 function fiberForceLengthCurve = createFiberForceLengthCurve2021(...
                normLengthZero, normLengthToe, normForceToe,...
-               kZero, kLow, kToe, curviness,...
+               yZero, kZero, kLow, kToe, curviness,...
                computeIntegral, muscleName,...
                flag_usingOctave)
 %%
@@ -135,20 +135,9 @@ assert( (curviness>=0 && curviness <= 1),...
 %%
 c = scaleCurviness(curviness);
 xZero = normLengthZero;
-yZero = kZero*xZero*10.0; %This way the curve cannot generate a zero value
-                         %for any positive length.
 
 xIso = normLengthToe;
 yIso = normForceToe;
-
-deltaX = min(0.2*(normForceToe/kToe), 0.2*(xIso-xZero));
-
-xLow     = xZero + deltaX;
-xfoot    = xZero + 0.5*(xLow-xZero);
-yfoot    = yZero;
-yLow     = yfoot + kLow*(xLow-xfoot);
-
-
 
 %Compute the Quintic Bezier control points
 %p0 = calcQuinticBezierCornerControlPoints(xZero, yZero,kZero, 0, ...

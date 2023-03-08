@@ -41,8 +41,13 @@ function integralStruct = createCurveIntegralStructure(curveParams,...
 %
 %%
 
-xmin = min(min(curveParams.xpts));
-xmax = max(max(curveParams.xpts));
+if(size(curveParams.xpts,2) > 1)
+    xmin = min(min(curveParams.xpts));
+    xmax = max(max(curveParams.xpts));
+else
+    xmin = min(curveParams.xpts);
+    xmax = max(curveParams.xpts);
+end
 xv = [];
 if(flag_integrateLeftToRight==1)
   xv   = [xmin:((xmax-xmin)/(npts-1)):xmax];

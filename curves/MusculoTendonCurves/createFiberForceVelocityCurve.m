@@ -4,8 +4,10 @@ function fiberForceVelocityCurve =  createFiberForceVelocityCurve(...
                                         fvAtLowEccVel,...                                        
                                         fvAtMaxEccVel,...
                                         eccCurviness,...
+                                        flag_sharpEccentricTransition,...                                        
                                         flag_enableNumericallyNonZeroGradients,...
-                                        smallNumericallyNonZeroNumber,...
+                                        smallNumericallyNonZeroValue,...
+                                        smallNumericallyNonZeroSlope,...
                                         muscleName,...
                                         flag_usingOctave)
 
@@ -86,8 +88,8 @@ yNearC = (b*fiso-a*w)/(b+w);
 
 vCExtrap = (-yNearC+dydxNearC*w)/dydxNearC;
 
-assert( abs(dydxNearC) > abs(smallNumericallyNonZeroNumber) ...
-         && abs(yNearC) > abs(smallNumericallyNonZeroNumber) ...
+assert( abs(dydxNearC) > abs(smallNumericallyNonZeroSlope) ...
+         && abs(yNearC) > abs(smallNumericallyNonZeroValue) ...
          && vCExtrap > vMaxC, ...
   sprintf('%s: smallNumericallyNonZeroNumber must be less than %1.3e and %1.3e',...
   fiberForceVelocityCurve.name, dydxNearC, yCheck));
@@ -188,13 +190,14 @@ end
 
 cE = scaleCurviness(eccCurviness);
 
+
 xC    = vMaxC;
 yC    = 0;
 dydxC = 0;
                                         
 if(flag_enableNumericallyNonZeroGradients==1)
-  yC    = smallNumericallyNonZeroNumber;
-  dydxC = smallNumericallyNonZeroNumber/10.;
+  yC    = smallNumericallyNonZeroValue;
+  dydxC = smallNumericallyNonZeroSlope;
 end
 
 
@@ -211,16 +214,47 @@ yE    = fvAtMaxEccVel;
 dydxE = (fvAtMaxEccVel-fvAtLowEccVel)/(vMaxE - 0);
 
 
-eccPts1  = ...
-    calcQuinticBezierCornerControlPoints(xIso,     yIso, dydxIso, 0, ...
-                                           xE,       yE,   dydxE, 0, cE);
+if(flag_sharpEccentricTransition==1)
+
+    xE0 = vMaxE*0.005;
+    yE0 = yIso + 2*dydxIso*(xE0-xIso);
+    dydxE0 = dydxIso*3;
+
+    xE1    = vMaxE*0.1;
+    yE1    = fvAtMaxEccVel+(xE1-xE)*dydxE;
+    dydxE1 = dydxE;
+
+
+    eccPts0  = ...
+        calcQuinticBezierCornerControlPoints(xIso,     yIso, dydxIso, 0, ...
+                                              xE0,      yE0,  dydxE0, 0, cE);
+    eccPts1  = ...
+        calcQuinticBezierCornerControlPoints(xE0,     yE0, dydxE0, 0, ...
+                                             xE1,      yE1, dydxE1, 0, cE);
+  
                                                                               
+    xpts = [concPts1(:,1) concPts2(:,1)  eccPts0(:,1) eccPts1(:,1) ];
+    ypts = [concPts1(:,2) concPts2(:,2)  eccPts0(:,2) eccPts1(:,2) ];
+    
+    fiberForceVelocityCurve.xpts = xpts;
+    fiberForceVelocityCurve.ypts = ypts;
 
-xpts = [concPts1(:,1) concPts2(:,1)  eccPts1(:,1)];
-ypts = [concPts1(:,2) concPts2(:,2)  eccPts1(:,2)];
+    xE=xE1;
+    yE=yE1;
+    dydxE=dydxE1;
 
-fiberForceVelocityCurve.xpts = xpts;
-fiberForceVelocityCurve.ypts = ypts;
+else
+    eccPts0  = ...
+        calcQuinticBezierCornerControlPoints(xIso,     yIso, dydxIso, 0, ...
+                                               xE,       yE,   dydxE, 0, cE);
+                                                                              
+    xpts = [concPts1(:,1) concPts2(:,1)  eccPts0(:,1)];
+    ypts = [concPts1(:,2) concPts2(:,2)  eccPts0(:,2)];
+    
+    fiberForceVelocityCurve.xpts = xpts;
+    fiberForceVelocityCurve.ypts = ypts;
+end
+
 
 fiberForceVelocityCurve.xEnd = [xC xE];
 fiberForceVelocityCurve.yEnd = [yC yE];

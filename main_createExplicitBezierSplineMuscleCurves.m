@@ -4,6 +4,8 @@ clc;
 close all;
 clear all;
 
+opengl('save','software');
+
 set(groot, 'defaultAxesFontSize',8);
 set(groot, 'defaultTextFontSize',8);
 set(groot, 'defaultAxesLabelFontSizeMultiplier',1.2);
@@ -78,10 +80,9 @@ addpath(parametersDirectoryTreeCurves);
 %%
 % Cat Soleus
 %%
-scaleOptimalFiberLengthCatSoleus        = 1.0; 
+scaleOptimalFiberLengthCatSoleus        = 1; 
 scaleMaximumIsometricTensionCatSoleus   = 1;
-
-
+shiftExperimentalForceLengthDataCatSoleus = 0;
 
 %%
 % Human Soleus Model parameters
@@ -399,13 +400,13 @@ if(flag_plotEveryCurve==1)
     %%
     figure(figH.activeForceLengthCurve);
       subplot(2,2,1);  
-      plot(  felineSoleusActiveForceLengthDataDefault(:,1),...
+      plot(  felineSoleusActiveForceLengthDataDefault(:,1)+shiftExperimentalForceLengthDataCatSoleus,...
            felineSoleusActiveForceLengthDataDefault(:,2),'xb');
       hold on;          
     
     figure(figH.fiberForceLengthCurve);
       subplot(2,2,1);
-      plot(   felineSoleusPassiveForceLengthDataDefault(:,1),...
+      plot(   felineSoleusPassiveForceLengthDataDefault(:,1)+shiftExperimentalForceLengthDataCatSoleus,...
               felineSoleusPassiveForceLengthDataDefault(:,2),'xb');
       hold on;          
   
