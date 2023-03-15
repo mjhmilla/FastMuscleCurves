@@ -654,22 +654,10 @@ if(flag_plotQuadraticHumanSoleus==1)
                         plotNumericalDerivatives);
 end
 
-%Write the fortran matrices
-% quadraticBezierFortranCurveFelineFolder = ['output/tables/QuadraticBezierFortranFelineCurves/'];
-% quadraticBezierCsvCurveFelineFolder     = ['output/tables/QuadraticBezierCSVFelineCurves/'];
-% 
-% quadraticBezierFortranCurveHumanFolder = ['output/tables/QuadraticBezierFortranHumanCurves/'];
-% quadraticBezierCsvCurveHumanFolder     = ['output/tables/QuadraticBezierCSVHumanCurves/'];
-% 
-% 
-% quadraticBezierFortranCurveFolderZero = ['output/tables/QuadraticBezierFortranCurvesZero/'];
-% quadraticBezierCsvCurveFolderZero     = ['output/tables/QuadraticBezierCSVCurvesZero/'];
-% 
-% quadraticBezierFortranCurveFolderOne = ['output/tables/QuadraticBezierFortranCurvesOne/'];
-% quadraticBezierCsvCurveFolderOne     = ['output/tables/QuadraticBezierCSVCurvesOne/'];
 
 quadraticBezierFortranCurveFelineFolder = ['output/tables/FortranExport/QuadraticBezierFelineCurves/'];
 quadraticBezierCsvCurveFelineFolder     = ['output/tables/curves/QuadraticBezierFelineCurves/'];
+
 
 quadraticBezierFortranCurveHumanFolder = ['output/tables/FortranExport/QuadraticBezierHumanCurves/'];
 quadraticBezierCsvCurveHumanFolder     = ['output/tables/curves/QuadraticBezierHumanCurves/'];
@@ -681,6 +669,34 @@ quadraticBezierCsvCurveFolderZero     = ['output/tables/curves/QuadraticBezierCu
 quadraticBezierFortranCurveFolderOne = ['output/tables/FortranExport/QuadraticBezierCurvesOne/'];
 quadraticBezierCsvCurveFolderOne     = ['output/tables/curves/QuadraticBezierCurvesOne/'];
 
+
+
+%%
+% Save Matlab files
+%%
+
+save('output/structs/defaultFelineSoleusQuadraticCurves.mat', ...
+    'felineSoleusNormMuscleQuadraticCurves');
+
+save('output/structs/defaultHumanSoleusQuadraticCurves.mat', ...
+    'humanSoleusNormMuscleQuadraticCurves');
+
+%We also output a version of the human curves assuming that the proximal
+%end of the PEVK segment attaches to actin, and another where the distal
+%end of the PEVK segment attaches to actin. The coefficients for these two
+%curves are interpolated to form, on the fly, the curve that defines the
+%force-length characteristics of titin given an attachement point loaction
+%anywhere within the PEVK segment.
+
+%Contains titin curves assuming that the proximal end of the PEVK 
+%segment attaches to actin
+save('output/structs/defaultHumanSoleusQuadraticCurves_TitinActinPEVKProxAttach.mat', ...
+    'zeroHumanTitinQuadraticCurves');
+
+%Contains titin curves assuming that the distal end of the PEVK 
+%segment attaches to actin
+save('output/structs/defaultHumanSoleusQuadraticCurves_TitinActinPEVKDistalAttach.mat', ...
+    'oneHumanTitinQuadraticCurves');
 
 %%
 % Generate the Fortran code to create each curve ...

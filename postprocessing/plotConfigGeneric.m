@@ -1,26 +1,15 @@
-%%
-% Setup plot parameters
-%%
+function [subPlotPanel,pageWidth,pageHeight]  = ...
+    plotConfigGeneric(numberOfHorizontalPlotColumns, ...
+                      numberOfVerticalPlotRows,...
+                      plotWidth,...
+                      plotHeight,...
+                      plotHorizMarginCm,...
+                      plotVertMarginCm)
 
-plotFontName = 'latex';
-
-if(flag_usingOctave == 0)
-set(groot, 'defaultAxesFontSize',8);
-set(groot, 'defaultTextFontSize',8);
-set(groot, 'defaultAxesLabelFontSizeMultiplier',1.2);
-set(groot, 'defaultAxesTitleFontSizeMultiplier',1.2);
-set(groot, 'defaultAxesTickLabelInterpreter','latex');
-%set(groot, 'defaultAxesFontName',plotFontName);
-%set(groot, 'defaultTextFontName',plotFontName);
-set(groot, 'defaultLegendInterpreter','latex');
-set(groot, 'defaultTextInterpreter','latex');
-set(groot, 'defaultAxesTitleFontWeight','bold');  
-set(groot, 'defaultFigurePaperUnits','centimeters');
-set(groot, 'defaultFigurePaperSize',[pageWidth pageHeight]);
-set(groot,'defaultFigurePaperType','A4');
-end
-
-
+pageWidth   = numberOfHorizontalPlotColumns*(plotWidth+plotHorizMarginCm)...
+                +2*plotHorizMarginCm;
+pageHeight  = numberOfVerticalPlotRows*(plotHeight+plotVertMarginCm)...
+                +2*plotVertMarginCm;
 
 plotWidth  = plotWidth/pageWidth;
 plotHeight = plotHeight/pageHeight;
@@ -32,6 +21,8 @@ topLeft = [0/pageWidth pageHeight/pageHeight];
 
 subPlotPanel=zeros(numberOfVerticalPlotRows,numberOfHorizontalPlotColumns,4);
 subPlotPanelIndex = zeros(numberOfVerticalPlotRows,numberOfHorizontalPlotColumns);
+
+
 
 idx=1;
 scaleVerticalMargin = 0.;
@@ -54,5 +45,20 @@ for(ai=1:1:numberOfVerticalPlotRows)
 end
 
 
+plotFontName = 'latex';
+
+set(groot, 'defaultAxesFontSize',8);
+set(groot, 'defaultTextFontSize',8);
+set(groot, 'defaultAxesLabelFontSizeMultiplier',1.2);
+set(groot, 'defaultAxesTitleFontSizeMultiplier',1.2);
+set(groot, 'defaultAxesTickLabelInterpreter','latex');
+%set(groot, 'defaultAxesFontName',plotFontName);
+%set(groot, 'defaultTextFontName',plotFontName);
+set(groot, 'defaultLegendInterpreter','latex');
+set(groot, 'defaultTextInterpreter','latex');
+set(groot, 'defaultAxesTitleFontWeight','bold');  
+set(groot, 'defaultFigurePaperUnits','centimeters');
+set(groot, 'defaultFigurePaperSize',[pageWidth pageHeight]);
+set(groot,'defaultFigurePaperType','A4');
 
 
