@@ -197,12 +197,14 @@ subplot('Position',reshape(subPlotPanelGeneric(1,1,:),1,4));
     title('Active Force-Length');
 
 subplot('Position',reshape(subPlotPanelGeneric(1,2,:),1,4));
-    plot(lceNRangeB, taSamples.fpeN,'Color',taColor);
+    plot(lceNRangeB-1, taSamples.fpeN,'Color',taColor);
     hold on;    
     box off;
-    xlabel('Norm. Length $$\ell/\ell^{M}_o$$');
+    xlabel('Norm. Length $$\ell/\ell^{PE}_o$$');
     ylabel('Norm. Force $$f/f^{M}_o$$');
     title('Passive Force-Length');
+    xlim([0,1]);
+    ylim([0,0.2]);
 
 subplot('Position',reshape(subPlotPanelGeneric(1,3,:),1,4));
     plot(vceNRange, taSamples.fvN,'Color',taColor);
