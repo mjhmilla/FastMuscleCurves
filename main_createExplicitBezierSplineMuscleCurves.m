@@ -15,7 +15,7 @@ set(groot, 'defaultLegendInterpreter','latex');
 set(groot, 'defaultTextInterpreter','latex');
 set(groot, 'defaultAxesTitleFontWeight','bold');  
 set(groot, 'defaultFigurePaperUnits','centimeters');
-set(groot,'defaultFigurePaperType','A4');
+set(groot, 'defaultFigurePaperType','A4');
 
 %Number of subdivisions of the quintic Bezier curves to use when
 %constructing the quadratic Bezier curves
