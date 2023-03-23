@@ -66,13 +66,22 @@ fvValues = calcQuadraticBezierYFcnXCurveSampleVector(...
 
 fig=figure;
 subplot(1,3,1);
+    plot(falValues.x,falValues.y,'-','Color',[1,1,1].*0.5);
+    hold on;
     plot(falValues.x,falValues.y,'.','Color',[0,0,0]);
     hold on;
+    plot(fpeValues.x,fpeValues.y,'-','Color',[1,1,1].*0.5);
+    hold on;
+    plot(fpeValues.x,fpeValues.y,'.','Color',[0,0,0]);
+    hold on;
+    
     xlabel('$$\tilde{\ell}^{M}$$');
     ylabel('$$\tilde{f}^{L}$$');
     box off;
 
-subplot(1,3,2);
+subplot(1,3,1);
+    plot(fpeValues.x,fpeValues.y,'.','Color',[0,0,0]);
+    hold on;
     plot(fpeValues.x,fpeValues.y,'.','Color',[0,0,0]);
     hold on;
     xlabel('$$\tilde{\ell}^{M}$$');
