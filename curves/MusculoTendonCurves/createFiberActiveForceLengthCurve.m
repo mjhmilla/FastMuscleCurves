@@ -281,10 +281,12 @@ if(flag_compensateForCrossbridgeStiffness==1)
     %Since the stiffness is f*Kx, the strain introduced by a half
     %cross bridge under an active force f is f/(f*Kx) or 1/Kx. For the 
     %entire sarcomere its 2/Kx.
+    p0x = p0x - 2/(normCrossbridgeStiffness);
     p1x = p1x - 2/(normCrossbridgeStiffness);
     p2x = p2x - 2/(normCrossbridgeStiffness);
     p3x = p3x - 2/(normCrossbridgeStiffness);
     p4x = p4x - 2/(normCrossbridgeStiffness);    
+    p5x = p5x - 2/(normCrossbridgeStiffness);
 end
 
 %Compute the locations of the control points

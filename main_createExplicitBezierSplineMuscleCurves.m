@@ -12,8 +12,8 @@ set(groot, 'defaultAxesLabelFontSizeMultiplier',1.2);
 set(groot, 'defaultAxesTitleFontSizeMultiplier',1.2);
 set(groot, 'defaultAxesTickLabelInterpreter','latex');
 set(groot, 'defaultLegendInterpreter','latex');
-set(groot, 'defaultTextInterpreter','latex');
 set(groot, 'defaultAxesTitleFontWeight','bold');  
+set(groot, 'defaultTextInterpreter','latex');
 set(groot, 'defaultFigurePaperUnits','centimeters');
 set(groot, 'defaultFigurePaperType','A4');
 
@@ -26,12 +26,12 @@ cubicZeroSecondDerivative    = 1;
 fitCrossBridgeStiffnessDampingToKirch199490Hz=0;
 flag_useFixedLambdaECM    = 0;
 
-flag_plotPublicationPlots = 1;
+flag_plotPublicationPlots = 0;
 
 flag_plotEveryCurve       = 0;
 flag_plotForceLengthDetail= 0;
 
-flag_plotQuadraticFelineSoleus  =0;
+flag_plotQuadraticFelineSoleus  =1;
 flag_plotQuadraticHumanSoleus   =0;
 
 pubOutputFolder                         = 'output/plots/MuscleCurves/';
@@ -332,10 +332,12 @@ oneHumanSoleus = createHumanSoleusModel(...
 %Plot feline curves + experimental data from Herzog & Leonard 2002
 %%
 
-structOfFigures = [];
+structOfFelineFigures = [];
+structOfHumanFigures = [];
+
 
 if(flag_plotEveryCurve==1)
-    figH = plotStructOfBezierSplines( defaultFelineSoleus.curves,...
+    structOfFelineFigures = plotStructOfBezierSplines( defaultFelineSoleus.curves,...
                                       {'Inverse','use'});                          
     
     %%
@@ -392,7 +394,7 @@ if(flag_plotEveryCurve==1)
     % Plot the derivative of the tendon force length curve on top of the
     % stiffness curve
     %% 
-    figure(figH.tendonStiffnessCurve);
+    figure(structOfFelineFigures.tendonStiffnessCurve);
     
         curveSample = calcBezierYFcnXCurveSampleVector(...
                         defaultFelineSoleus.curves.('tendonForceLengthCurve'), 200,[]);
@@ -410,13 +412,13 @@ if(flag_plotEveryCurve==1)
     %%
     %Plot experimental data over top of the curves where it is available.
     %%
-    figure(figH.activeForceLengthCurve);
+    figure(structOfFelineFigures.activeForceLengthCurve);
       subplot(2,2,1);  
       plot(  felineSoleusActiveForceLengthDataDefault(:,1),...
            felineSoleusActiveForceLengthDataDefault(:,2),'xb');
       hold on;          
     
-    figure(figH.fiberForceLengthCurve);
+    figure(structOfFelineFigures.fiberForceLengthCurve);
       subplot(2,2,1);
       plot(   felineSoleusPassiveForceLengthDataDefault(:,1),...
               felineSoleusPassiveForceLengthDataDefault(:,2),'xb');
@@ -712,7 +714,23 @@ if(flag_plotPublicationPlots == 1)
                         defaultFelineSoleus.sarcomere.IGDFixedNormLengthAtOptimalFiberLength,...
                         defaultFelineSoleus.sarcomere.titinModelType);  
 
-    blueA       = [0, 0.4470, 0.7410];
+    greyA = [0,0,0];
+    greyB = [1,1,1].*0.5;
+    
+    blueA  = [0, 0.4470, 0.7410];
+    blueB  = blueA.*0.5 + [1,1,1].*0.5;
+    
+    greenA = [0, 0.75, 0.75];
+    greenB = greenA.*0.5 + [1,1,1].*0.5;
+    
+    maroonA= [0.6350, 0.0780, 0.1840];
+    maroonB= maroonA.*0.5 + [1,1,1].*0.5;
+    
+    magentaA = [0.75, 0, 0.75];
+    magentaB = magentaA.*0.5 + [1,1,1].*0.5;
+    
+    redA = [193, 39, 45]./255;
+    redB = redA.*0.5 + [1,1,1].*0.5;
     blueB       = [0, 0.4470, 0.7410].*0.66 + [1,1,1].*0.33;
     blueC       = [0, 0.4470, 0.7410].*0.33 + [1,1,1].*0.66;
     magentaA    = [0.75, 0, 0.75];
@@ -721,15 +739,15 @@ if(flag_plotPublicationPlots == 1)
     maroonA     = [0.6350, 0.0780, 0.1840];    
     greenA      = [0, 0.75, 0.75];
 
-    colorModel    = blueB;
-    colorMAT156   = maroonA;
+    colorModel    = blueA;
+    colorMAT156   = redA;
     colorData     = [0,0,0];
 
     colorEcm = blueB;
     colorTitin=blueC;
     
 
-    lineWidthModel  = 2;
+    lineWidthModel  = 1.5;
     lineWidthMAT156 = 1;
     lineWidthData   = 1;
 
@@ -744,7 +762,7 @@ if(flag_plotPublicationPlots == 1)
     xBridgeDelta = ones(size(falCalSample.y)) ./ (defaultFelineSoleus.sarcomere.normCrossBridgeStiffness);
     xBridgeDelta = xBridgeDelta.*2;
     flag_addCrossbridgeStrain  = 0;
-    flag_plotActiveTitinForces = 0;
+    flag_plotActiveTitinForces = 1;
 
     subplot('Position',reshape(subPlotPanel(1,1,:),1,4));
 
@@ -753,7 +771,7 @@ if(flag_plotPublicationPlots == 1)
             plot(falCalSample.x,falCalSample.y,...
                 '-','Color',colorModel,...
                 'LineWidth',lineWidthModel,...
-                'DisplayName',[labelModel,': $$f^{L}$$']);
+                'DisplayName',[labelModel,': $$f^{L}_{CAL}$$']);
         else
             plot(falSample.x,falSample.y,...
                 '-','Color',colorModel,...
@@ -761,9 +779,9 @@ if(flag_plotPublicationPlots == 1)
                 'DisplayName',[labelModel,': $$f^{L}$$']);
         end
         hold on;    
-        plot(falSample.x,falSample.y,'-','Color',colorMAT156,...
+        plot(falSample.x,falSample.y,'--','Color',colorMAT156,...
             'LineWidth',lineWidthMAT156,...
-            'DisplayName',[labelMAT156,': $$f^{PE}$$']);
+            'DisplayName',[labelMAT156,': $$f^{L}_{156}$$']);
         hold on;
         plot(felineSoleusActiveForceLengthDataDefault(:,1),...
              felineSoleusActiveForceLengthDataDefault(:,2),...
@@ -792,7 +810,7 @@ if(flag_plotPublicationPlots == 1)
             plot(curveSampleTitinActiveFeline.x.*2,...
                  curveSampleTitinActiveFeline.y.*(1-ecmForceFractionFelineSoleus) ...
                  +curveSampleECMHalfFeline.y.*(ecmForceFractionFelineSoleus),...
-                 '.-','Color',colorModel,...
+                 '-','Color',colorModel,...
                     'LineWidth',lineWidthModel,...
                     'DisplayName',labelModel,...
                     'HandleVisibility','off');
@@ -801,14 +819,16 @@ if(flag_plotPublicationPlots == 1)
             titinActive = ...
                 curveSampleTitinActiveFeline.y.*(1-ecmForceFractionFelineSoleus)...
                +curveSampleECMHalfFeline.y.*(ecmForceFractionFelineSoleus);
-            while titinActive(idxMid,1) < 0.5
+            while titinActive(idxMid,1) < 0.25
                 idxMid=idxMid+1;
             end
     
-            text(curveSampleTitinActiveFeline.x(idxMid,1).*2,...
-                 titinActive(idxMid,1),...
-                 'Titin (active)','HorizontalAlignment','right',...
-                 'Rotation',80);
+            text(curveSampleTitinActiveFeline.x(idxMid,1).*2-0.025,...
+                 titinActive(idxMid,1).*(1-ecmForceFractionFelineSoleus),...
+                 'Model: Active titin \& ECM',...
+                 'HorizontalAlignment','left',...
+                 'VerticalAlignment','bottom',...
+                 'Rotation',85);
             hold on;
         end
 
@@ -832,10 +852,12 @@ if(flag_plotPublicationPlots == 1)
             'HandleVisibility','off');
         hold on;
         text(lpeNOne+0.075, 0.5*ecmForceFractionFelineSoleus,...
-             'ECM');
+             'Model: ECM, $$f^{ECM}$$',...
+             'FontSize',6,'Rotation',45);
         hold on;
         text(lpeNOne+0.075, ecmForceFractionFelineSoleus + (1-ecmForceFractionFelineSoleus).*0.5,...
-             'Titin (passive)');
+             'Model: Passive Titin, $$f^{1},\,f^{2}$$',...
+             'FontSize',6,'Rotation',45);
         hold on;
 
         titinTopX = [curveSampleTitinFeline.x;...
@@ -856,13 +878,18 @@ if(flag_plotPublicationPlots == 1)
         plot(curveSampleTitinFeline.x.*2 ,...
              (curveSampleTitinFeline.y.*(1-ecmForceFractionFelineSoleus) ...
              +curveSampleECMHalfFeline.y.*ecmForceFractionFelineSoleus),...
-             '--','Color',colorModel,...
+             '-','Color',colorModel,...
                 'LineWidth',lineWidthModel,...
                 'DisplayName',[labelModel,': $$f^{PE}$$']);
         hold on
 
+        fpeMAT156Sample.x = curveSampleECMHalfFeline.x.*2;
+        fpeMAT156Sample.y = curveSampleTitinFeline.y.*(1-ecmForceFractionFelineSoleus) ...
+                           +curveSampleECMHalfFeline.y.*(ecmForceFractionFelineSoleus); 
 
-        plot(fpeSample.x,fpeSample.y,'--','Color',colorMAT156,...
+
+
+        plot(fpeMAT156Sample.x,fpeMAT156Sample.y,'--','Color',colorMAT156,...
             'LineWidth',lineWidthMAT156,...
             'DisplayName',[labelMAT156,': $$f^{PE}$$']);
         hold on;
@@ -916,7 +943,7 @@ if(flag_plotPublicationPlots == 1)
             hold on;
         end
 
-        plot(fvSample.x,fvSample.y,'-','Color',colorMAT156,...
+        plot(fvSample.x,fvSample.y,'--','Color',colorMAT156,...
             'LineWidth',lineWidthMAT156,...
             'DisplayName',labelMAT156);
         hold on;
@@ -1005,14 +1032,14 @@ end
 % Plot everything
 %%
 
-colorOverride               = [1,0.5,0.5];
-lineWidthOverride           = 1.5;
+colorOverride               = [1,0,0];
+lineWidthOverride           = 0.5;
 plotNumericalDerivatives    = 0;
 
 if(flag_plotQuadraticFelineSoleus==1)
     fprintf('\n\nPlotting quadratic Bezier splines: feline soleus\n\n');
 
-    structOfFigures = plotStructOfQuadraticBezierSplines( structOfFigures,...
+    structOfFelineFigures = plotStructOfQuadraticBezierSplines( structOfFelineFigures,...
                         felineSoleusNormMuscleQuadraticCurves,'Inverse',...
                         colorOverride,lineWidthOverride,...
                         'Feline soleus (2nd order)',2,...
@@ -1021,12 +1048,70 @@ if(flag_plotQuadraticFelineSoleus==1)
     colorOverride               = [0,0,0];
     lineWidthOverride           = 1;
     plotNumericalDerivatives    = 0;
+
+
+
+    npts=100;
+    falSample = calcQuadraticBezierYFcnXCurveSampleVector(...
+        felineSoleusNormMuscleQuadraticCurves.activeForceLengthCurve, npts, []);
+
+    dxN = 2.0/defaultFelineSoleus.sarcomere.normCrossBridgeStiffness;
+
+    falCalSample = calcQuadraticBezierYFcnXCurveSampleVector(...
+        felineSoleusNormMuscleQuadraticCurves.activeForceLengthCalibratedCurve, npts, []);
+
+    falCalAdj.x = falCalSample.x;
+    falCalAdj.y = zeros(size(falCalAdj.x));
+    disp('Error Report: calibrated vs adjusted fal curves');
+    for i=1:1:length(falCalAdj.x)
+        falCalAdj.y(i,1) = ...
+            calcQuadraticBezierYFcnXDerivative(falCalAdj.x(i,1)+dxN,...
+              felineSoleusNormMuscleQuadraticCurves.activeForceLengthCurve, 0);
+        falCalAdjErr = falCalAdj.y(i,1)-falCalSample.y(i,1);
+        fprintf('%i. %1.3e\t%1.3e\n',i,falCalAdj.x(i,1),falCalAdjErr);
+        %assert(abs(falCalAdjErr)<1e-3,'Error: fal calibrated and shifted curves do not match');
+    end
+
+    figFalAdj =figure;
+
+    numberOfHorizontalPlotColumns   = 2;
+    numberOfVerticalPlotRows        = 2;
+    plotWidth           = 6.0;
+    plotHeight          = 6.0;
+    plotHorizMarginCm   = 1.5;
+    plotVertMarginCm    = 2.0;
+
+    [subPlotPanel,pageWidth,pageHeight]  = ...
+        plotConfigGeneric(numberOfHorizontalPlotColumns, ...
+                          numberOfVerticalPlotRows,...
+                          plotWidth,...
+                          plotHeight,...
+                          plotHorizMarginCm,...
+                          plotVertMarginCm);   
+
+    figure(structOfFelineFigures.activeForceLengthCurve);
+
+    subplot(2,2,1);
+    plot(falCalSample.x,falCalSample.y,'--','Color',[0,0,1],'DisplayName','$$f^L_{CAL}$$');
+    hold on;
+    plot(falCalAdj.x,falCalAdj.y,'--','Color',[1,0,1],'DisplayName','$$f^L_{CAL}$$');
+    hold on;
+    xlabel('Norm. Length ($$\ell/\ell_o^M$$)');
+    ylabel('Norm. Force ($$f/f_o^M$$)');
+    box off;
+    legend;
+    legend box off;
+    here=1;
+    
+
 end
+
+
 
 if(flag_plotQuadraticHumanSoleus==1)
     fprintf('\n\nPlotting quadratic Bezier splines: human soleus\n\n');
     
-    structOfFigures = plotStructOfQuadraticBezierSplines( structOfFigures,...
+    structOfHumanFigures = plotStructOfQuadraticBezierSplines( structOfHumanFigures,...
                         humanSkeletalMuscleQuadraticCurves,'Inverse',...
                         colorOverride,lineWidthOverride,...
                         'Human (2nd order)',3,...

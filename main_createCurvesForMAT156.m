@@ -37,6 +37,7 @@ parametersDirectoryTreeMTParams     = genpath('parameters');
 parametersDirectoryTreeExperiments  = genpath('experiments');
 parametersDirectoryTreeModels       = genpath('models');
 parametersDirectoryTreeCurves       = genpath('curves');
+parametersDirectoryTreeCurves       = genpath('postprocessing');
 
 addpath(parametersDirectoryTreeMTParams);
 addpath(parametersDirectoryTreeExperiments);
@@ -48,7 +49,7 @@ addpath(parametersDirectoryTreeCurves);
 %%
 
 load('output/structs/defaultFelineSoleusQuadraticCurves.mat');
-
+load('output/structs/defaultFelineSoleus.mat');
 npts  = 100;
 domain= [] ; %Take the default extended range
 
@@ -64,48 +65,198 @@ fvValues = calcQuadraticBezierYFcnXCurveSampleVector(...
   felineSoleusNormMuscleQuadraticCurves.fiberForceVelocityCurve,...
   npts, domain);
 
+% Sample the fpe curve created by the ECM and series connection of titin
+samples = fpeValues.x;
+
+[ curveSampleECMHalfFeline,...
+  curveSampleTitinFeline,...
+  curveSampleTitinActiveFeline,...
+  curveSampleIgpFeline,...
+  curveSamplePevkFeline,...
+  curveSampleIgdFeline,...
+  curveSampleProximalTitinFeline,...
+  curveSampleDistalTitinFeline] = ...
+  sampleQuadraticTitinCurves(samples.*0.5,...
+                    felineSoleusNormMuscleQuadraticCurves.forceLengthECMHalfCurve,...
+                    felineSoleusNormMuscleQuadraticCurves.forceLengthProximalTitinCurve,...
+                    felineSoleusNormMuscleQuadraticCurves.forceLengthProximalTitinInverseCurve,...
+                    felineSoleusNormMuscleQuadraticCurves.forceLengthDistalTitinCurve,...
+                    felineSoleusNormMuscleQuadraticCurves.forceLengthDistalTitinInverseCurve,...                    
+                    felineSoleusNormMuscleQuadraticCurves.forceLengthIgPTitinCurve,...
+                    felineSoleusNormMuscleQuadraticCurves.forceLengthIgPTitinInverseCurve,...
+                    felineSoleusNormMuscleQuadraticCurves.forceLengthPevkTitinCurve,...
+                    felineSoleusNormMuscleQuadraticCurves.forceLengthPevkTitinInverseCurve,...
+                    felineSoleusNormMuscleQuadraticCurves.forceLengthIgDTitinCurve,...
+                    felineSoleusNormMuscleQuadraticCurves.forceLengthIgDTitinInverseCurve,...
+                    defaultFelineSoleus.sarcomere.ZLineToT12NormLengthAtOptimalFiberLength,...
+                    defaultFelineSoleus.sarcomere.IGPNormLengthAtOptimalFiberLength,...
+                    defaultFelineSoleus.sarcomere.PEVKNormLengthAtOptimalFiberLength,...
+                    defaultFelineSoleus.sarcomere.IGDFixedNormLengthAtOptimalFiberLength,...
+                    defaultFelineSoleus.sarcomere.titinModelType); 
+
+fpe31Values.x = samples;
+fpe31Values.y = curveSampleECMHalfFeline.y.*(defaultFelineSoleus.sarcomere.extraCellularMatrixPassiveForceFraction) ...
+               +curveSampleTitinFeline.y.*(1-defaultFelineSoleus.sarcomere.extraCellularMatrixPassiveForceFraction);
+
+%%
+% Generate the values along the tendon
+%%
+fiso     = defaultFelineSoleus.musculotendon.fiso;
+lceOpt   = defaultFelineSoleus.musculotendon.optimalFiberLength;
+alphaOpt = defaultFelineSoleus.musculotendon.pennationAngle;
+vMax     = lceOpt*defaultFelineSoleus.musculotendon.maximumNormalizedFiberVelocity;
+
+lceOptAT = lceOpt*cos(alphaOpt);
+
+%lce*sin(alpha) = h
+%dlce*sin(alpha)+lce*cos(alpha)*alphaDot=0
+%alphaDot= -(dlce/lce)*tan(alpha)
+alphaDotOpt = -(vMax/lceOpt)*tan(alphaOpt);
+vMaxAT      = vMax*cos(alphaOpt)-lceOpt*sin(alphaOpt)*alphaDotOpt;
+fisoAT      = fiso*cos(alphaOpt);
+
+
+falValues.xAT   = zeros(size(falValues.x));
+falValues.yAT   = zeros(size(falValues.y));
+
+fpeValues.xAT   = zeros(size(fpeValues.x));
+fpeValues.yAT   = zeros(size(fpeValues.y));
+
+fvValues.xAT    = zeros(size(fvValues.x));
+fvValues.yAT    = zeros(size(fvValues.y));
+
+fpe31Values.xAT =zeros(size(fpe31Values.x));
+fpe31Values.yAT =zeros(size(fpe31Values.y));
+
+
+%Evaluate the active-force-length curve along the tendon
+for i=1:1:length(falValues.x)
+
+    if(falValues.x(i,1) >= 1)
+        here=1;
+    end
+
+    fiberKinematics = calcFixedWidthPennatedFiberKinematicsAlongTendon(...
+                                                falValues.x(i,1).*lceOpt,...
+                                                0,...
+                                                lceOpt,...
+                                                alphaOpt);
+    alpha = fiberKinematics.pennationAngle;
+    lceAT = fiberKinematics.fiberLengthAlongTendon;
+
+    falValues.xAT(i,1) = lceAT/lceOptAT;
+    falValues.yAT(i,1) = fiso*falValues.y(i,1)*cos(alpha)/fisoAT;
+
+    if(fiberKinematics.isClamped)
+        fprintf('%i. fal isClamped \n',i);
+    end
+end
+
+%Evaluate the passive-force-length curve along the tendon
+for i=1:1:length(fpeValues.x)
+    fiberKinematics = calcFixedWidthPennatedFiberKinematicsAlongTendon(...
+                                                fpeValues.x(i,1).*lceOpt,...
+                                                0,...
+                                                lceOpt,...
+                                                alphaOpt);
+
+    alpha = fiberKinematics.pennationAngle;
+    lceAT = fiberKinematics.fiberLengthAlongTendon;
+
+    fpeValues.xAT(i,1) = lceAT/lceOptAT;
+    fpeValues.yAT(i,1) = fiso*fpeValues.y(i,1)*cos(alpha)/fisoAT;
+
+    if(fiberKinematics.isClamped)
+        fprintf('%i. fpe isClamped \n',i);
+    end    
+end
+for i=1:1:length(fpe31Values.x)
+    fiberKinematics = calcFixedWidthPennatedFiberKinematicsAlongTendon(...
+                                                fpe31Values.x(i,1).*lceOpt,...
+                                                0,...
+                                                lceOpt,...
+                                                alphaOpt);
+
+    alpha = fiberKinematics.pennationAngle;
+    lceAT = fiberKinematics.fiberLengthAlongTendon;
+
+    fpe31Values.xAT(i,1) = lceAT/lceOptAT;
+    fpe31Values.yAT(i,1) = fiso*fpe31Values.y(i,1)*cos(alpha)/fisoAT;
+
+    if(fiberKinematics.isClamped)
+        fprintf('%i. fal isClamped \n',i);
+    end
+end
+%Evaluate the force-velocity curve along the tendon
+for i=1:1:length(fvValues.x)
+    fiberKinematics = calcFixedWidthPennatedFiberKinematicsAlongTendon(...
+                                                lceOpt,...
+                                                fvValues.x(i,1)*(vMax),...
+                                                lceOpt,...
+                                                alphaOpt);
+
+    alpha = fiberKinematics.pennationAngle;
+    lceAT = fiberKinematics.fiberLengthAlongTendon;
+    vceAT = fiberKinematics.fiberVelocityAlongTendon;
+
+
+    fvValues.xAT(i,1) = vceAT/vMaxAT;
+    fvValues.yAT(i,1) = fiso*fvValues.y(i,1)*cos(alpha)/fisoAT;
+end
+
 fig=figure;
 subplot(1,3,1);
-    plot(falValues.x,falValues.y,'-','Color',[1,1,1].*0.5);
+    plot(falValues.x,falValues.y,'-','Color',[1,1,1].*0.5,'LineWidth',2);
     hold on;
-    plot(falValues.x,falValues.y,'.','Color',[0,0,0]);
-    hold on;
-    plot(fpeValues.x,fpeValues.y,'-','Color',[1,1,1].*0.5);
-    hold on;
-    plot(fpeValues.x,fpeValues.y,'.','Color',[0,0,0]);
+    plot(falValues.xAT,falValues.yAT,'-','Color',[1,0,0]);
     hold on;
     
     xlabel('$$\tilde{\ell}^{M}$$');
     ylabel('$$\tilde{f}^{L}$$');
     box off;
 
-subplot(1,3,1);
-    plot(fpeValues.x,fpeValues.y,'.','Color',[0,0,0]);
+subplot(1,3,2);
+    plot(fpeValues.x,fpeValues.y,'--','Color',[1,1,1].*0.5,'LineWidth',2);
     hold on;
-    plot(fpeValues.x,fpeValues.y,'.','Color',[0,0,0]);
+    plot(fpeValues.xAT,fpeValues.yAT,'-','Color',[0,0,1]);
     hold on;
+
+    plot(fpe31Values.x,fpe31Values.y,'--','Color',[1,0.5,0.5]);
+    hold on;    
+    plot(fpe31Values.xAT,fpe31Values.yAT,'-','Color',[1,0,0]);
+    hold on;
+
     xlabel('$$\tilde{\ell}^{M}$$');
     ylabel('$$\tilde{f}^{PE}$$');
     box off;
     
 subplot(1,3,3);
-    plot(fvValues.x,fvValues.y,'.','Color',[0,0,0]);
+    plot(fvValues.x,fvValues.y,'-','Color',[0,0,0]);
     hold on;
+    plot(fvValues.xAT,fvValues.yAT,'--','Color',[1,0,0]);
+    hold on;
+    
     xlabel('$$\tilde{v}^{M}$$');
     ylabel('$$\tilde{f}^{V}$$');
     box off;
 
 
-vN = [fvValues.x;1];
-fvN = [fvValues.y;...
-       calcQuadraticBezierYFcnXDerivative(1,...
-       felineSoleusNormMuscleQuadraticCurves.fiberForceVelocityCurve,0)]; 
+fvNMax = calcQuadraticBezierYFcnXDerivative(1,...
+       felineSoleusNormMuscleQuadraticCurves.fiberForceVelocityCurve,0);
+fvNATMax    = fvNMax*cos(alphaOpt);
 
-success = writeFortranVector(falValues.x, falValues.y, 10, ...
+
+vNAT  = [fvValues.xAT; 1];
+fvNAT = [fvValues.yAT; fvNATMax]; 
+
+
+disp('To do: write umat43 and MAT 156 architectural properties to file');
+
+success = writeFortranVector(falValues.xAT, falValues.yAT, 10, ...
     'output/tables/FortranExport/MAT156Tables/defaultFelineSoleusQ_activeForceLengthCurve.f');
-success = writeFortranVector(fpeValues.x, fpeValues.y, 11, ...
+success = writeFortranVector(fpe31Values.xAT, fpe31Values.yAT, 11, ...
     'output/tables/FortranExport/MAT156Tables/defaultFelineSoleusQ_forceLengthCurve.f');
-success = writeFortranVector(vN, fvN, 12, ...
+success = writeFortranVector(vNAT, fvNAT, 12, ...
     'output/tables/FortranExport/MAT156Tables/defaultFelineSoleusQ_forceVelocityCurve.f');
 
 

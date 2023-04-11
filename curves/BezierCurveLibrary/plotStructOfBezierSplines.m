@@ -4,7 +4,7 @@ function fig = plotStructOfBezierSplines( curveStruct ,...
 
 curveNames =fieldnames(curveStruct);
 
-fig  = [];
+%fig  = [];
 
 for i=1:1:length(curveNames)
 
