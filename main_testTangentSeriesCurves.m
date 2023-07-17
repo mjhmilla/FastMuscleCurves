@@ -61,7 +61,14 @@ pageHeight= numberOfVerticalPlotRows*(plotHeight+plotVertMarginCm)...
 flag_usingOctave    = 0;
 
 
-plotConfigGeneric;
+[subPlotPanel,pageWidth,pageHeight]  = ...
+    plotConfigGeneric(numberOfHorizontalPlotColumns, ...
+                      numberOfVerticalPlotRows,...
+                      plotWidth,...
+                      plotHeight,...
+                      plotHorizMarginCm,...
+                      plotVertMarginCm);
+%^plotConfigGeneric;
 
 %%
 % Create a C2 Quintic tendon force length curve
@@ -102,12 +109,34 @@ y1      = tendonForceLengthCurve.yEnd(1,2);
 dydx0   = tendonForceLengthCurve.dydxEnd(1,1);
 dydx1   = tendonForceLengthCurve.dydxEnd(1,2);
 
+yNegInf = y0;
+yInf    = [];  
 
-[A,B,C,D,E,F] = calcTanhSegmentCoefficients(x0,x1,dydx0,dydx1,y0,[],-0.00525,0.9,.0);
+xShift      = -0.00525;
+xScale      = 0.9;
+xAtIntYZero = 0;
+
+[A,B,C,D,E,F] = calcTanhSegmentCoefficients(x0,x1,dydx0,dydx1,...
+                                            yNegInf,yInf,...
+                                            xShift,xScale,xAtIntYZero);
 tendonForceLengthTanhCoeffs = [A,B,C,D,E,F];
 
-[A,B,C,D,E,F] = calcTanSegmentCoefficients(x0,x1,dydx0,dydx1,y0,[], 1.0,-0.0045,0.125);
+yNegInf = y0;
+yInf    = [];  
+xShift      = -0.0045;
+xScale      = 0.125;
+xAtIntYZero = 1;
+
+
+
+[A,B,C,D,E,F] = calcTanSegmentCoefficients(x0,x1,dydx0,dydx1,...
+                                           yNegInf,yInf, ...
+                                           xAtIntYZero,xShift,xScale);
 tendonForceLengthTanCoeffs = [A,B,C,D,E,F];
+
+tendonTanhToe = calcTanhSeriesDerivative(x1,tendonForceLengthTanhCoeffs,0);
+errToe = tendonTanhToe;
+
 
 npts = 100;
 
