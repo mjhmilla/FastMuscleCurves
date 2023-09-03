@@ -110,15 +110,22 @@ dydx0   = tendonForceLengthCurve.dydxEnd(1,1);
 dydx1   = tendonForceLengthCurve.dydxEnd(1,2);
 
 yNegInf = y0;
-yInf    = [];  
+yInf    = inf;  
 
 xShift      = -0.00525;
 xScale      = 0.9;
 xAtIntYZero = 0;
+xPoint = 1+eIso;
+yPoint = 1;
 
-[A,B,C,D,E,F] = calcTanhSegmentCoefficients(x0,x1,dydx0,dydx1,...
-                                            yNegInf,yInf,...
-                                            xShift,xScale,xAtIntYZero);
+[A,B,C,D,E,F] = calcTanhSegmentCoefficientsUpd(...
+                    x0,x1,dydx0,dydx1,...
+                    yNegInf,yInf,...
+                    xScale,xPoint, yPoint, xAtIntYZero);
+
+%[A,B,C,D,E,F] = calcTanhSegmentCoefficients(x0,x1,dydx0,dydx1,...
+%                                            yNegInf,yInf,...
+%                                            xShift,xScale,xAtIntYZero);
 tendonForceLengthTanhCoeffs = [A,B,C,D,E,F];
 
 yNegInf = y0;
