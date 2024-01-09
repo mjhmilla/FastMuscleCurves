@@ -17,6 +17,8 @@ set(groot, 'defaultTextInterpreter','latex');
 set(groot, 'defaultFigurePaperUnits','centimeters');
 set(groot, 'defaultFigurePaperType','A4');
 
+
+useElasticTendon = 1;
 %Number of subdivisions of the quintic Bezier curves to use when
 %constructing the quadratic Bezier curves
 numberOfQuadraticSubdivisions= 2;
@@ -205,6 +207,7 @@ fprintf(['\n\ndefaultFelineSoleus\n\n']);
                 scaleMaximumIsometricTensionCatSoleus,...
                 shiftExperimentalForceLengthDataCatSoleus,...
                 flag_embedECMandTitinFractionIntoCurves,...
+                useElasticTendon,...
                 flag_useOctave);
 
 dlmwrite('output/sample/HerzogLeonard2002/HerzogLeonard2002_ActiveForceLength.csv',...
@@ -235,6 +238,7 @@ save('output/structs/defaultFelineSoleus.mat',...
                 scaleMaximumIsometricTensionCatSoleus,...
                 shiftExperimentalForceLengthDataCatSoleus,...
                 flag_embedECMandTitinFractionIntoCurves,...
+                useElasticTendon,...
                 flag_useOctave);
 
 save('output/structs/zeroFelineSoleus.mat',...
@@ -260,6 +264,7 @@ save('output/structs/zeroFelineSoleus.mat',...
                 scaleMaximumIsometricTensionCatSoleus,...
                 shiftExperimentalForceLengthDataCatSoleus,...
                 flag_embedECMandTitinFractionIntoCurves,...
+                useElasticTendon,...
                 flag_useOctave);
 
 save('output/structs/oneFelineSoleus.mat',...
@@ -529,7 +534,7 @@ while indexCurve < length(curveNames)
         indexCurve=indexCurve+1;
 end
 
-fprintf('\n\nConverting 6th order curves to 4th order\n\n');
+fprintf('\n\nConverting 5th order curves to 2nd order\n\n');
 for indexCurve=1:1:length(curveNames)
         disp(curveNames{indexCurve});
 
@@ -584,7 +589,7 @@ while indexCurve < length(curveNames)
         indexCurve=indexCurve+1;
 end
 
-fprintf('\n\nConverting 6th order curves to 4th order (human)\n\n');
+fprintf('\n\nConverting 5th order curves to 2nd order (human)\n\n');
 
 for indexCurve=1:1:length(curveNames)
     disp(curveNames{indexCurve});
@@ -595,7 +600,7 @@ for indexCurve=1:1:length(curveNames)
 end
 
 
-fprintf('\n\nConverting 6th order curves to 4th order (human-one-titin)\n\n');
+fprintf('\n\nConverting 5th order curves to 2nd order (human-one-titin)\n\n');
 
 for indexCurve=1:1:length(curveNamesTitin)
     disp(curveNamesTitin{indexCurve});
@@ -605,7 +610,7 @@ for indexCurve=1:1:length(curveNamesTitin)
             numberOfQuadraticSubdivisions);
 end
 
-fprintf('\n\nConverting 6th order curves to 4th order (human-zero-titin)\n\n');
+fprintf('\n\nConverting 5th order curves to 2nd order (human-zero-titin)\n\n');
 
 for indexCurve=1:1:length(curveNamesTitin)
     disp(curveNamesTitin{indexCurve});
@@ -615,7 +620,7 @@ for indexCurve=1:1:length(curveNamesTitin)
             numberOfQuadraticSubdivisions);
 end
 
-fprintf('\n\nConverting 6th order curves to 4th order (feline-one-titin)\n\n');
+fprintf('\n\nConverting 5th order curves to 2nd order (feline-one-titin)\n\n');
 
 for indexCurve=1:1:length(curveNamesTitin)
     disp(curveNamesTitin{indexCurve});
@@ -625,7 +630,7 @@ for indexCurve=1:1:length(curveNamesTitin)
             numberOfQuadraticSubdivisions);
 end
 
-fprintf('\n\nConverting 6th order curves to 4th order (feline-zero-titin)\n\n');
+fprintf('\n\nConverting 5th order curves to 2nd order (feline-zero-titin)\n\n');
 
 for indexCurve=1:1:length(curveNamesTitin)
     disp(curveNamesTitin{indexCurve});
