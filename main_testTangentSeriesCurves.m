@@ -143,9 +143,7 @@ tendonForceLengthTanCoeffs = [A,B,C,D,E,F];
 
 disp('The passive curves used in Brown, Scott, Loeb 1996 for the force-length');
 disp('curves of the CE and the tendon are similar to the ones used here.');
-disp('They should be referenced. It is a pity that these were not used by');
-disp('others, and a pity that the idea was not extended further, as I am');
-disp('now doing.');
+disp('They should be referenced.');
 tendonTanhToe = calcTanhSeriesDerivative(x1,tendonForceLengthTanhCoeffs,0);
 errToe = tendonTanhToe;
 
