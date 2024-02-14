@@ -6,17 +6,29 @@ clear all;
 
 opengl('save','software');
 
+%Warning: This option is not working properly. The code will run,
+%         curves will be produced, but when used in simulation the 
+%         resulting curves do not behave as expected.
+flag_adjustCurvesImplicitlyIncludeTendon = 0;
+
+flag_solveForHerzogLeonard1997Params=1;
+
+
 %%
 % Architectural Parameters from the LS-DYNA files
 %%
-% lceOpt      =  0.0428571;
-% fceOpt      = 22.469172;
-% penOpt      =  0.1221730;
-% penOptD     = 7.0000000;
-% lceOptAT    =  0.0425376;
-% fceOptAT    = 22.301690;
-% ltSlk       =  0.0304511;
-% et          =  0.045833;
+
+lsdynaCatSoleus.lceOpt  =0.0428571;
+lsdynaCatSoleus.fceOpt  =21.612138;
+lsdynaCatSoleus.lceOptAT=0.0425376;
+lsdynaCatSoleus.fceOptAT=21.451044;
+lsdynaCatSoleus.lmtOptAT=0.0729888;
+lsdynaCatSoleus.penOpt  =0.1221730;
+lsdynaCatSoleus.penOptD =7.0 ;
+lsdynaCatSoleus.ltSlk   =0.0304511;
+lsdynaCatSoleus.et      =0.0458333;
+lsdynaCatSoleus.vceMax  =4.50;
+
 vceMax      = 4.5;
 
 set(groot, 'defaultAxesFontSize',8);
@@ -249,15 +261,104 @@ fvNATMax    = fvNMax*cos(alphaOpt);
 vNAT  = [fvValues.xAT; 1];
 fvNAT = [fvValues.yAT; fvNATMax]; 
 
+lceNAT_falN = falValues.xAT;
+lceNAT_fpeN = fpeValues.xAT;
+vceNAT_fvNAT = vNAT;
+dlceN1 = 0;
+
+if(flag_solveForHerzogLeonard1997Params==1)
+    dataHL1997=getHerzogLeonard1997Keypoints();
+
+    fpeN0Exp = dataHL1997.fpe(1,1);
+    lceN0Exp = dataHL1997.l(1,1);
+
+    fpeN1Exp = dataHL1997.fpe(1,2);
+    lceN1Exp = dataHL1997.l(1,2);
+
+    idxMin = find(fpeValues.yAT > 0.01,1);
+
+    lceN1 = interp1(fpeValues.yAT(idxMin:end,1),...
+                    lceNAT_fpeN(idxMin:end,1),...
+                    fpeN1Exp);
+    dlceN1 = lceN1Exp-lceN1;
+
+
+    subplot(1,3,2);
+        plot(lceNAT_fpeN+dlceN1,fpeValues.yAT,'-c');
+        hold on;
+        plot(lceN1Exp,fpeN1Exp,'xk');
+        hold on
+        plot(lceN0Exp,fpeN0Exp,'xk');
+        hold on
+
+
+   flN0Exp = dataHL1997.fa(1,1);
+   flN1Exp = dataHL1997.fa(1,2);
+
+   subplot(1,3,1);
+        plot([0.5,1.5],[1,1].*flN0Exp,'-k');
+        hold on
+        plot(lceN0Exp,flN0Exp,'xk');
+        hold on
+        plot([0.5,1.5],[1,1].*flN1Exp,'-k');
+        hold on     
+        plot(lceN1Exp,flN1Exp,'xk');
+        hold on
+    
+end
+
+if(flag_adjustCurvesImplicitlyIncludeTendon==1)
+    lceNAT_falN = (lceNAT_falN.*lsdynaCatSoleus.lceOpt) ...
+        ./(lsdynaCatSoleus.lceOpt + lsdynaCatSoleus.ltSlk);
+
+    lceNAT_fpeN = ((lceNAT_fpeN+dlceN1).*lsdynaCatSoleus.lceOpt) ...
+        ./(lsdynaCatSoleus.lceOpt + lsdynaCatSoleus.ltSlk);
+
+    vceNAT_fvNAT = (vceNAT_fvNAT.*(lsdynaCatSoleus.lceOpt*lsdynaCatSoleus.vceMax)) ...
+        ./((lsdynaCatSoleus.lceOpt + lsdynaCatSoleus.ltSlk)*lsdynaCatSoleus.vceMax);
+
+    subplot(1,3,1);
+        plot(lceNAT_falN,falValues.yAT,'-','Color',[1,0,1]);
+        hold on;
+        
+        xlabel('$$\tilde{\ell}^{M}$$');
+        ylabel('$$\tilde{f}^{L}$$');
+        box off;
+    
+    subplot(1,3,2);       
+        plot(lceNAT_fpeN,fpeValues.yAT,'-','Color',[1,0,1]);
+        hold on;
+       
+        xlabel('$$\tilde{\ell}^{M}$$');
+        ylabel('$$\tilde{f}^{PE}$$');
+        box off;
+        
+    subplot(1,3,3);
+        plot(vceNAT_fvNAT,fvNAT,'--','Color',[1,0,1]);
+        hold on;
+        
+        xlabel('$$\tilde{v}^{M}$$');
+        ylabel('$$\tilde{f}^{V}$$');
+        box off;
+
+        
+    success = writeFortranVector(lceNAT_falN, falValues.yAT, 10, ...
+        'output/fortran/MAT156Tables/defaultFelineSoleusQ_activeForceLengthCurve_implicitRigidTendon.f');
+    success = writeFortranVector(lceNAT_fpeN, fpeValues.yAT, 11, ...
+        'output/fortran/MAT156Tables/defaultFelineSoleusQ_forceLengthCurve_implicitRigidTendon.f');
+    success = writeFortranVector(vceNAT_fvNAT, fvNAT, 12, ...
+        'output/fortran/MAT156Tables/defaultFelineSoleusQ_forceVelocityCurve_implicitRigidTendon.f');
+        
+end
 
 disp('To do: write umat43 and MAT 156 architectural properties to file');
 
 success = writeFortranVector(falValues.xAT, falValues.yAT, 10, ...
-    'output/tables/FortranExport/MAT156Tables/defaultFelineSoleusQ_activeForceLengthCurve.f');
-success = writeFortranVector(fpe31Values.xAT, fpe31Values.yAT, 11, ...
-    'output/tables/FortranExport/MAT156Tables/defaultFelineSoleusQ_forceLengthCurve.f');
+    'output/fortran/MAT156Tables/defaultFelineSoleusQ_activeForceLengthCurve.f');
+success = writeFortranVector(fpeValues.xAT+dlceN1, fpeValues.yAT, 11, ...
+    'output/fortran/MAT156Tables/defaultFelineSoleusQ_forceLengthCurve.f');
 success = writeFortranVector(vNAT, fvNAT, 12, ...
-    'output/tables/FortranExport/MAT156Tables/defaultFelineSoleusQ_forceVelocityCurve.f');
+    'output/fortran/MAT156Tables/defaultFelineSoleusQ_forceVelocityCurve.f');
 
 
 %%

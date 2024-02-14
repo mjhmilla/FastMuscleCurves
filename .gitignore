@@ -14,6 +14,8 @@ postprocessing00
 *.svg
 *.f
 *.csv
+!experiments/HerzogLeonard1997/fig_HerzogLeonard1997Fig1A_length.csv
+!experiments/HerzogLeonard1997/fig_HerzogLeonard1997Fig1A_forces.csv
 !experiments/TrombitasGreaserFrenchGranzier1998/Trombitas1998_Figure5.csv
 !experiments/TrombitasGreaserFrenchGranzier1998/Trombitas1998_Figure6.csv
 !experiments/HerzogLeonard2002/data/dataHerzogLeonard2002Figure5.csv

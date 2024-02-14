@@ -24,7 +24,7 @@ C = ((x1-x0)*0.5)*(1/2)*xScale;
 %limit
 A = -(dydx0-dydx1)*0.5;
 D = dydx1-A;
-
+E=0;
 if(~isinf(yNegInf))
     assert(abs(dydx0) < eps);
     %This means that yNegInf has a finite value, which means that dydx0=0

@@ -1124,18 +1124,18 @@ if(flag_plotQuadraticHumanSoleus==1)
 end
 
 
-quadraticBezierFortranCurveFelineFolder = ['output/tables/FortranExport/QuadraticBezierFelineCurves/'];
+quadraticBezierFortranCurveFelineFolder = ['output/fortran/QuadraticBezierFelineCurves/'];
 quadraticBezierCsvCurveFelineFolder     = ['output/tables/curves/QuadraticBezierFelineCurves/'];
 
 
-quadraticBezierFortranCurveHumanFolder = ['output/tables/FortranExport/QuadraticBezierHumanCurves/'];
+quadraticBezierFortranCurveHumanFolder = ['output/fortran/QuadraticBezierHumanCurves/'];
 quadraticBezierCsvCurveHumanFolder     = ['output/tables/curves/QuadraticBezierHumanCurves/'];
 
 
-quadraticBezierFortranCurveFolderZero = ['output/tables/FortranExport/QuadraticBezierCurvesZero/'];
+quadraticBezierFortranCurveFolderZero = ['output/fortran/QuadraticBezierCurvesZero/'];
 quadraticBezierCsvCurveFolderZero     = ['output/tables/curves/QuadraticBezierCurvesZero/'];
 
-quadraticBezierFortranCurveFolderOne = ['output/tables/FortranExport/QuadraticBezierCurvesOne/'];
+quadraticBezierFortranCurveFolderOne = ['output/fortran/QuadraticBezierCurvesOne/'];
 quadraticBezierCsvCurveFolderOne     = ['output/tables/curves/QuadraticBezierCurvesOne/'];
 
 
