@@ -18,16 +18,27 @@ flag_solveForHerzogLeonard1997Params=1;
 % Architectural Parameters from the LS-DYNA files
 %%
 
-lsdynaCatSoleus.lceOpt  =0.0428571;
-lsdynaCatSoleus.fceOpt  =21.612138;
-lsdynaCatSoleus.lceOptAT=0.0425376;
-lsdynaCatSoleus.fceOptAT=21.451044;
-lsdynaCatSoleus.lmtOptAT=0.0729888;
-lsdynaCatSoleus.penOpt  =0.1221730;
-lsdynaCatSoleus.penOptD =7.0 ;
-lsdynaCatSoleus.ltSlk   =0.0304511;
-lsdynaCatSoleus.et      =0.0458333;
-lsdynaCatSoleus.vceMax  =4.50;
+catSoleusHL2002.lceOpt  =0.0428571;
+catSoleusHL2002.fceOpt  =21.612138;
+catSoleusHL2002.lceOptAT=0.0425376;
+catSoleusHL2002.fceOptAT=21.451044;
+catSoleusHL2002.lmtOptAT=0.0729888;
+catSoleusHL2002.penOpt  =0.1221730;
+catSoleusHL2002.penOptD =7.0 ;
+catSoleusHL2002.ltSlk   =0.0304511;
+catSoleusHL2002.et      =0.0458333;
+catSoleusHL2002.vceMax  =4.50;
+
+catSoleusHL1997.lceOpt  =0.038;
+catSoleusHL1997.fceOpt  =41.661837;
+catSoleusHL1997.lceOptAT=0.0377168;
+catSoleusHL1997.fceOptAT=41.351296;
+catSoleusHL1997.lmtOptAT=0.0681679;
+catSoleusHL1997.penOpt  =0.1221730;
+catSoleusHL1997.penOptD =7.0 ;
+catSoleusHL1997.ltSlk   =0.0304511;
+catSoleusHL1997.et      =0.0458333;
+catSoleusHL1997.vceMax  =4.50;
 
 vceMax      = 4.5;
 
@@ -49,12 +60,13 @@ parametersDirectoryTreeMTParams     = genpath('parameters');
 parametersDirectoryTreeExperiments  = genpath('experiments');
 parametersDirectoryTreeModels       = genpath('models');
 parametersDirectoryTreeCurves       = genpath('curves');
-parametersDirectoryTreeCurves       = genpath('postprocessing');
+parametersDirectoryTreePostProcessing= genpath('postprocessing');
 
 addpath(parametersDirectoryTreeMTParams);
 addpath(parametersDirectoryTreeExperiments);
 addpath(parametersDirectoryTreeModels);
 addpath(parametersDirectoryTreeCurves);
+addpath(parametersDirectoryTreePostProcessing);
 
 %%
 % Load the curves that we've already generated for the cat soleus
@@ -308,14 +320,14 @@ if(flag_solveForHerzogLeonard1997Params==1)
 end
 
 if(flag_adjustCurvesImplicitlyIncludeTendon==1)
-    lceNAT_falN = (lceNAT_falN.*lsdynaCatSoleus.lceOpt) ...
-        ./(lsdynaCatSoleus.lceOpt + lsdynaCatSoleus.ltSlk);
+    lceNAT_falN = (lceNAT_falN.*catSoleusHL2002.lceOpt) ...
+        ./(catSoleusHL2002.lceOpt + catSoleusHL2002.ltSlk);
 
-    lceNAT_fpeN = ((lceNAT_fpeN+dlceN1).*lsdynaCatSoleus.lceOpt) ...
-        ./(lsdynaCatSoleus.lceOpt + lsdynaCatSoleus.ltSlk);
+    lceNAT_fpeN = ((lceNAT_fpeN+dlceN1).*catSoleusHL2002.lceOpt) ...
+        ./(catSoleusHL2002.lceOpt + catSoleusHL2002.ltSlk);
 
-    vceNAT_fvNAT = (vceNAT_fvNAT.*(lsdynaCatSoleus.lceOpt*lsdynaCatSoleus.vceMax)) ...
-        ./((lsdynaCatSoleus.lceOpt + lsdynaCatSoleus.ltSlk)*lsdynaCatSoleus.vceMax);
+    vceNAT_fvNAT = (vceNAT_fvNAT.*(catSoleusHL2002.lceOpt*catSoleusHL2002.vceMax)) ...
+        ./((catSoleusHL2002.lceOpt + catSoleusHL2002.ltSlk)*catSoleusHL2002.vceMax);
 
     subplot(1,3,1);
         plot(lceNAT_falN,falValues.yAT,'-','Color',[1,0,1]);
