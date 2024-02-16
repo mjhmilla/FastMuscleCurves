@@ -33,5 +33,8 @@ end
 
 invCurve.integral = [];
 
-invCurve.name = sprintf('%s.%s',curve.name,'inverse');
-
+if(isfield(curve,'name'))
+    invCurve.name = sprintf('%s.%s',curve.name,'inverse');
+else
+    invCurve.name='inverse';
+end

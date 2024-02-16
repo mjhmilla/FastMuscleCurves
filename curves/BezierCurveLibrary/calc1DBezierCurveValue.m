@@ -24,17 +24,21 @@ function f = calc1DBezierCurveValue(u, pV)
 % [1] http://en.wikipedia.org/wiki/De_Casteljau%27s_algorithm
 %
 %%
-bV0 = zeros(size(pV,1)-1,1);
 
-
-for i=1:1:length(bV0)
-    bV0(i) = (pV(i+1)-pV(i))*(u) + pV(i);
-end
-
-if(length(bV0) == 1)    
-    f  = bV0;
+if(length(pV)==1)
+    f= pV;
 else
-    f = calc1DBezierCurveValue(u,bV0);
+    bV0 = zeros(size(pV,1)-1,1);
+    
+    
+    for i=1:1:length(bV0)
+        bV0(i) = (pV(i+1)-pV(i))*(u) + pV(i);
+    end
+    
+    if(length(bV0) == 1)    
+        f  = bV0;
+    else
+        f = calc1DBezierCurveValue(u,bV0);
+    end
 end
-
 

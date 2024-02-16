@@ -21,8 +21,6 @@ set(groot, 'defaultAxesTitleFontWeight','bold');
 set(groot, 'defaultFigurePaperUnits','centimeters');
 set(groot,'defaultFigurePaperType','A4');
 
-
-
 pubOutputFolder                         = 'output/plots/MuscleCurves/';
 postprocessingDirectoryTree             = genpath('postprocessing');
 addpath(postprocessingDirectoryTree   );

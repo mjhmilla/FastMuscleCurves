@@ -28,7 +28,7 @@ cubicZeroSecondDerivative    = 1;
 fitCrossBridgeStiffnessDampingToKirch199490Hz=0;
 flag_useFixedLambdaECM    = 0;
 
-flag_plotPublicationPlots = 0;
+flag_plotPublicationPlots = 1;
 
 flag_plotEveryCurve       = 0;
 flag_plotForceLengthDetail= 0;
