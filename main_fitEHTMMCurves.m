@@ -103,7 +103,7 @@ lceFmax = calcFpeeInverseUmat41(Fmax, lceOpt,dWdes,Fmax,FPEE,LPEE0,nuPEE);
 dfpee   = calcFpeeDerivativeUmat41(lceFmax, lceOpt,dWdes,Fmax,FPEE,LPEE0,nuPEE);
 
 targetPoints.lceN0 = lceN1Exp;
-targetPoints.fpeN0 = fpeN1Exp;
+targetPoints.fpeN0 = fpeN1Exp*(0.076/0.111)*(0.076/0.090);
 targetPoints.lceN1 = lceFmax/lceOpt;
 targetPoints.fpeN1 = Fmax/Fmax;
 targetPoints.dfpeN1 = dfpee*(lceOpt/Fmax);
@@ -116,7 +116,7 @@ LPEE0upd=x(1,1);
 FPEEupd=x(2,1);
 
 disp('Optimized fpe parameters');
-fprintf('%e\tLPEE0\n%e\tFPEE',LPEE0upd,FPEEupd);
+fprintf('%e\tLPEE0\n%e\tFPEE\n',LPEE0upd,FPEEupd);
 
 %%
 % Active force-length curve
@@ -136,7 +136,7 @@ fisomParams.lceOpt=lceOpt;
 targetPoints.lceN0   = lceN0Exp;
 targetPoints.flN0    = flN0Exp;
 targetPoints.lceN1   = lceN1Exp;
-targetPoints.flN1    = flN1Exp;
+targetPoints.flN1    = min(flN1Exp*((1.03486-0.0760336)/(1.00388-0.0898021)),0.975);
 
 errFcnFisom= @(arg)calcFisomErrEHTMM(arg, fisomParams,targetPoints);
 x0 = [dWasc;nuCEasc];
@@ -145,7 +145,7 @@ dWasc   = x(1,1);
 nuCEasc = x(2,1);
 
 disp('Optimized fisom parameters');
-fprintf('%e\tdWasc\n%e\tnuCEasc',dWasc,nuCEasc);
+fprintf('%e\tdWasc\n%e\tnuCEasc\n',dWasc,nuCEasc);
 
 %%
 % Solve for the dWasc and nuCEasc parameters that intersect the desired 
@@ -191,8 +191,29 @@ lceN1upd = interp1(fpeNupd(idxMin:end,1),...
 dlceN1upd = lceN1Exp-lceN1upd;
 
 
+%%
+%Plot the tendon force length curve
+%%
+lSEE0    = 0.0304511;
+dUSEEnll = 0.0347222;
+dUSEEl   = 0.0222222;
+dFSEE0   = 30*(30/32.64);%14.337374;
+
+ltN = [1:0.001:1.12]';
+fsee = zeros(length(ltN),1);
+for i=1:1:length(ltN)
+    fsee(i,1)=calcFseeUmat41(lSEE0*ltN(i,1),lSEE0,dUSEEnll,dUSEEl,dFSEE0);
+end
+fseeN=fsee./Fmax;
+idxMin = find(fseeN > 0.01);
+ltNFtFiso = interp1(fseeN(idxMin:end,1),ltN(idxMin:end,1),1);
+
+idxFtFmax =  find(fseeN>1,1);
+kseN = calcCentralDifferenceDataSeries(ltN,fseeN);
+kseNFiso = kseN(idxFtFmax);
+
 fig=figure;
-    subplot(1,3,1);
+    subplot(1,4,1);
         plot(lceN,falN,'-k');
         hold on;
         plot([0.5,1.5],[1,1].*flN0Exp,'-k');
@@ -208,7 +229,7 @@ fig=figure;
         ylabel('Norm. Force ($$f/f^M_o$$)');
         title('Active Force Length Relation');
     
-    subplot(1,3,2);
+    subplot(1,4,2);
         plot(lceN,fpeN,'-k');
         hold on;
         plot(lceN,fpeNupd,'-b');
@@ -240,7 +261,7 @@ fig=figure;
         ylabel('Norm. Force ($$f/f^M_o$$)');
         title('Passive Force Length Relation');
 
-    subplot(1,3,3);
+    subplot(1,4,3);
 
         dfpeNum = calcCentralDifferenceDataSeries(lceN,fpeN);
 
@@ -251,3 +272,12 @@ fig=figure;
         xlabel('Norm. Length ($$\ell/\ell^M_o$$)');
         ylabel('Norm. Stiffness ($$(f/f^M_o)/\ell$$)');
         title('Passive Stiffness Length Relation');
+
+    subplot(1,4,4);
+        plot(ltN,fseeN);
+        hold on;
+        text(ltNFtFiso,1,sprintf('eT=%1.6f\nkT=%1.6f',ltNFtFiso,kseNFiso));
+
+        xlabel('Norm. Length ($$\ell^T/\ell^T_{s}$$)');
+        ylabel('Norm. Force ($$f^T/f^M_o$$)');
+        title('Tendon Force Length');

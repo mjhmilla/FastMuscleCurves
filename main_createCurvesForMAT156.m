@@ -12,7 +12,7 @@ opengl('save','software');
 flag_adjustCurvesImplicitlyIncludeTendon = 0;
 
 flag_solveForHerzogLeonard1997Params=1;
-
+flag_addTendonStretchtToFpe=0;
 
 %%
 % Architectural Parameters from the LS-DYNA files
@@ -131,6 +131,7 @@ alphaOpt = defaultFelineSoleus.musculotendon.pennationAngle;
 vMax     = lceOpt*defaultFelineSoleus.musculotendon.maximumNormalizedFiberVelocity;
 
 lceOptAT = lceOpt*cos(alphaOpt);
+ltSlk = defaultFelineSoleus.musculotendon.tendonSlackLength;
 
 %lce*sin(alpha) = h
 %dlce*sin(alpha)+lce*cos(alpha)*alphaDot=0
@@ -145,6 +146,10 @@ falValues.yAT   = zeros(size(falValues.y));
 
 fpeValues.xAT   = zeros(size(fpeValues.x));
 fpeValues.yAT   = zeros(size(fpeValues.y));
+
+fpeAdjustedValues = fpeValues;
+fpeAdjustedValues.xAT   = zeros(size(fpeValues.x));
+fpeAdjustedValues.yAT   = zeros(size(fpeValues.y));
 
 fvValues.xAT    = zeros(size(fvValues.x));
 fvValues.yAT    = zeros(size(fvValues.y));
@@ -194,6 +199,42 @@ for i=1:1:length(fpeValues.x)
         fprintf('%i. fpe isClamped \n',i);
     end    
 end
+
+%Evaluate the passive-force-length curve along the tendon
+for i=1:1:length(fpeAdjustedValues.x)
+    fiberKinematics = calcFixedWidthPennatedFiberKinematicsAlongTendon(...
+                                                fpeAdjustedValues.x(i,1).*lceOpt,...
+                                                0,...
+                                                lceOpt,...
+                                                alphaOpt);
+
+    alpha = fiberKinematics.pennationAngle;
+    lceAT = fiberKinematics.fiberLengthAlongTendon;
+    
+    fpeNAT = fiso*fpeValues.y(i,1)*cos(alpha)/fisoAT;
+
+    ltN = calcQuadraticBezierYFcnXDerivative(fpeNAT,...
+       felineSoleusNormMuscleQuadraticCurves.tendonForceLengthInverseCurve,0);
+    ltDelta = ltN*ltSlk - ltSlk;
+
+    if(flag_addTendonStretchtToFpe)
+        fpeAdjustedValues.xAT(i,1) = (lceAT+ltDelta)/lceOptAT;
+    else
+        fpeAdjustedValues.xAT(i,1) = (lceAT)/lceOptAT;
+    end
+    fpeAdjustedValues.yAT(i,1) = fpeNAT;
+
+    if(fiberKinematics.isClamped)
+        fprintf('%i. fpe isClamped \n',i);
+    end    
+end
+
+kpeWithTendonDeltaValues.xAT = fpeAdjustedValues.xAT;
+kpeWithTendonDeltaValues.yAT = ...
+    calcCentralDifferenceDataSeries(fpeAdjustedValues.xAT,...
+                                    fpeAdjustedValues.yAT);
+
+
 for i=1:1:length(fpe31Values.x)
     fiberKinematics = calcFixedWidthPennatedFiberKinematicsAlongTendon(...
                                                 fpe31Values.x(i,1).*lceOpt,...
@@ -204,13 +245,33 @@ for i=1:1:length(fpe31Values.x)
     alpha = fiberKinematics.pennationAngle;
     lceAT = fiberKinematics.fiberLengthAlongTendon;
 
+
+    fpeNAT = fiso*fpe31Values.y(i,1)*cos(alpha)/fisoAT;
+
+
+
+
     fpe31Values.xAT(i,1) = lceAT/lceOptAT;
-    fpe31Values.yAT(i,1) = fiso*fpe31Values.y(i,1)*cos(alpha)/fisoAT;
+    fpe31Values.yAT(i,1) = fpeNAT;
 
     if(fiberKinematics.isClamped)
         fprintf('%i. fal isClamped \n',i);
     end
 end
+
+disp('Checking the fpe and fpe31 produce similar values');
+disp('Note: fpe31 is constructed using the ECM and titin curves');
+for i=1:1:length(fpeValues.x)
+    assert(abs(fpeValues.x(i,1)-fpe31Values.x(i,1)) < 1e-3,...
+        ['Error: fpe fpe31 do not match for x at ',num2str(i)]);
+    assert(abs(fpeValues.y(i,1)-fpe31Values.y(i,1)) < 5e-2,...
+        ['Error: fpe fpe31 do not match for y at ',num2str(i)]);
+    assert(abs(fpeValues.xAT(i,1)-fpe31Values.xAT(i,1)) < 1e-3,...
+        ['Error: fpe fpe31 do not match for xAT at ',num2str(i)]);
+    assert(abs(fpeValues.yAT(i,1)-fpe31Values.yAT(i,1)) < 5e-2,...
+        ['Error: fpe fpe31 do not match for yAT at ',num2str(i)]);
+end
+
 %Evaluate the force-velocity curve along the tendon
 for i=1:1:length(fvValues.x)
     fiberKinematics = calcFixedWidthPennatedFiberKinematicsAlongTendon(...
@@ -250,6 +311,27 @@ subplot(1,3,2);
     plot(fpe31Values.xAT,fpe31Values.yAT,'-','Color',[1,0,0]);
     hold on;
 
+
+
+    plot(fpeAdjustedValues.x,fpeAdjustedValues.y,'--','Color',[0.5,0.5,1]);
+    hold on;    
+    plot(fpeAdjustedValues.xAT,fpeAdjustedValues.yAT,'-','Color',[0,0,1]);
+    hold on;
+
+    lceNfpe1 = interp1(fpeAdjustedValues.yAT,...
+                       fpeAdjustedValues.xAT,...
+                       1);
+    kceNfpe1 = interp1(kpeWithTendonDeltaValues.xAT,...
+                       kpeWithTendonDeltaValues.yAT,...
+                       lceNfpe1);
+    kcefpe1 = kceNfpe1*(1/1000)*(catSoleusHL1997.fceOptAT/catSoleusHL1997.lceOptAT);
+    th=text(lceNfpe1,1,sprintf('%1.3f N/mm',kcefpe1),...
+         'HorizontalAlignment','right',...
+         'Color',[0,0,1]);
+    th.Rotation=45;
+    hold on;
+   
+
     xlabel('$$\tilde{\ell}^{M}$$');
     ylabel('$$\tilde{f}^{PE}$$');
     box off;
@@ -274,7 +356,7 @@ vNAT  = [fvValues.xAT; 1];
 fvNAT = [fvValues.yAT; fvNATMax]; 
 
 lceNAT_falN = falValues.xAT;
-lceNAT_fpeN = fpeValues.xAT;
+lceNAT_fpeN = fpeAdjustedValues.xAT;
 vceNAT_fvNAT = vNAT;
 dlceN1 = 0;
 
@@ -287,21 +369,43 @@ if(flag_solveForHerzogLeonard1997Params==1)
     fpeN1Exp = dataHL1997.fpe(1,2);
     lceN1Exp = dataHL1997.l(1,2);
 
-    idxMin = find(fpeValues.yAT > 0.01,1);
+    idxMin = find(fpeAdjustedValues.yAT > 0.01,1);
 
-    lceN1 = interp1(fpeValues.yAT(idxMin:end,1),...
+    lceN1 = interp1(fpeAdjustedValues.yAT(idxMin:end,1),...
                     lceNAT_fpeN(idxMin:end,1),...
                     fpeN1Exp);
     dlceN1 = lceN1Exp-lceN1;
 
+    fpeAdjustedValues.xAT=fpeAdjustedValues.xAT+dlceN1;
 
+    kpeWithTendonDeltaValues.xAT = fpeAdjustedValues.xAT;
+    kpeWithTendonDeltaValues.yAT = ...
+        calcCentralDifferenceDataSeries(fpeAdjustedValues.xAT,...
+                                        fpeAdjustedValues.yAT);
+    
     subplot(1,3,2);
-        plot(lceNAT_fpeN+dlceN1,fpeValues.yAT,'-c');
+        plot(fpeAdjustedValues.xAT,...
+             fpeAdjustedValues.yAT,'-c');
         hold on;
         plot(lceN1Exp,fpeN1Exp,'xk');
         hold on
         plot(lceN0Exp,fpeN0Exp,'xk');
         hold on
+
+    
+        lceNfpe1 = interp1(fpeAdjustedValues.yAT,...
+                           fpeAdjustedValues.xAT,...
+                           1);
+        kceNfpe1 = interp1(kpeWithTendonDeltaValues.xAT,...
+                           kpeWithTendonDeltaValues.yAT,...
+                           lceNfpe1);
+        kcefpe1 = kceNfpe1*(1/1000)*(catSoleusHL1997.fceOptAT/catSoleusHL1997.lceOptAT);
+        th=text(lceNfpe1,1,sprintf('%1.3f N/mm',kcefpe1),...
+             'HorizontalAlignment','right',...
+             'Color',[0,1,1]);
+        th.Rotation=45;
+
+    hold on;        
 
 
    flN0Exp = dataHL1997.fa(1,1);
@@ -320,6 +424,7 @@ if(flag_solveForHerzogLeonard1997Params==1)
 end
 
 if(flag_adjustCurvesImplicitlyIncludeTendon==1)
+    assert(0,'Error: this is not working at the moment');
     lceNAT_falN = (lceNAT_falN.*catSoleusHL2002.lceOpt) ...
         ./(catSoleusHL2002.lceOpt + catSoleusHL2002.ltSlk);
 
@@ -356,7 +461,7 @@ if(flag_adjustCurvesImplicitlyIncludeTendon==1)
         
     success = writeFortranVector(lceNAT_falN, falValues.yAT, 10, ...
         'output/fortran/MAT156Tables/defaultFelineSoleusQ_activeForceLengthCurve_implicitRigidTendon.f');
-    success = writeFortranVector(lceNAT_fpeN, fpeValues.yAT, 11, ...
+    success = writeFortranVector(lceNAT_fpeN, fpeAdjustedValues.yAT, 11, ...
         'output/fortran/MAT156Tables/defaultFelineSoleusQ_forceLengthCurve_implicitRigidTendon.f');
     success = writeFortranVector(vceNAT_fvNAT, fvNAT, 12, ...
         'output/fortran/MAT156Tables/defaultFelineSoleusQ_forceVelocityCurve_implicitRigidTendon.f');
@@ -367,7 +472,7 @@ disp('To do: write umat43 and MAT 156 architectural properties to file');
 
 success = writeFortranVector(falValues.xAT, falValues.yAT, 10, ...
     'output/fortran/MAT156Tables/defaultFelineSoleusQ_activeForceLengthCurve.f');
-success = writeFortranVector(fpeValues.xAT+dlceN1, fpeValues.yAT, 11, ...
+success = writeFortranVector(fpeAdjustedValues.xAT, fpeAdjustedValues.yAT, 11, ...
     'output/fortran/MAT156Tables/defaultFelineSoleusQ_forceLengthCurve.f');
 success = writeFortranVector(vNAT, fvNAT, 12, ...
     'output/fortran/MAT156Tables/defaultFelineSoleusQ_forceVelocityCurve.f');
