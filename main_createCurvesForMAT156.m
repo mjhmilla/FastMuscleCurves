@@ -12,7 +12,12 @@ opengl('save','software');
 flag_adjustCurvesImplicitlyIncludeTendon = 0;
 
 flag_solveForHerzogLeonard1997Params=1;
-flag_addTendonStretchtToFpe=0;
+
+flag_addTendonStretchToFpe          = 0;
+
+flag_offsetFpeToBeZeroAtFinalLength = 1;
+fpeNShift.fpeN = 0.015;
+fpeNShift.fpeNTarget = 0.001;
 
 %%
 % Architectural Parameters from the LS-DYNA files
@@ -201,6 +206,15 @@ for i=1:1:length(fpeValues.x)
 end
 
 %Evaluate the passive-force-length curve along the tendon
+lceNA = calcQuadraticBezierYFcnXDerivative(fpeNShift.fpeN,...
+            felineSoleusNormMuscleQuadraticCurves.fiberForceLengthInverseCurve,0);
+lceNB = calcQuadraticBezierYFcnXDerivative(fpeNShift.fpeNTarget,...
+            felineSoleusNormMuscleQuadraticCurves.fiberForceLengthInverseCurve,0);
+if(flag_offsetFpeToBeZeroAtFinalLength==1) 
+    disp('To zero fpe at final ramp length shift by');
+    fprintf('%1.6f\n',(lceNA-lceNB));
+end
+
 for i=1:1:length(fpeAdjustedValues.x)
     fiberKinematics = calcFixedWidthPennatedFiberKinematicsAlongTendon(...
                                                 fpeAdjustedValues.x(i,1).*lceOpt,...
@@ -217,17 +231,24 @@ for i=1:1:length(fpeAdjustedValues.x)
        felineSoleusNormMuscleQuadraticCurves.tendonForceLengthInverseCurve,0);
     ltDelta = ltN*ltSlk - ltSlk;
 
-    if(flag_addTendonStretchtToFpe)
+    if(flag_addTendonStretchToFpe==1)
         fpeAdjustedValues.xAT(i,1) = (lceAT+ltDelta)/lceOptAT;
     else
         fpeAdjustedValues.xAT(i,1) = (lceAT)/lceOptAT;
     end
+
+    if(flag_offsetFpeToBeZeroAtFinalLength==1)    
+        fpeAdjustedValues.xAT(i,1) = fpeAdjustedValues.xAT(i,1) + (lceNA-lceNB);  
+    end    
+
     fpeAdjustedValues.yAT(i,1) = fpeNAT;
 
     if(fiberKinematics.isClamped)
         fprintf('%i. fpe isClamped \n',i);
     end    
 end
+
+
 
 kpeWithTendonDeltaValues.xAT = fpeAdjustedValues.xAT;
 kpeWithTendonDeltaValues.yAT = ...
@@ -411,6 +432,9 @@ if(flag_solveForHerzogLeonard1997Params==1)
    flN0Exp = dataHL1997.fa(1,1);
    flN1Exp = dataHL1997.fa(1,2);
 
+   lceN2Exp = 0.79;
+   flN2Exp  = 0.883;
+
    subplot(1,3,1);
         plot([0.5,1.5],[1,1].*flN0Exp,'-k');
         hold on
@@ -419,6 +443,10 @@ if(flag_solveForHerzogLeonard1997Params==1)
         plot([0.5,1.5],[1,1].*flN1Exp,'-k');
         hold on     
         plot(lceN1Exp,flN1Exp,'xk');
+        hold on
+        plot([0.5,1.5],[1,1].*flN2Exp,'-k');
+        hold on     
+        plot(lceN2Exp,flN2Exp,'xk');
         hold on
     
 end

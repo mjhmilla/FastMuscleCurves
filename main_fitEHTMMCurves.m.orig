@@ -72,14 +72,16 @@ lceN0Exp = dataHL1997.l(1,1);
 fpeN1Exp = dataHL1997.fpe(1,2);
 lceN1Exp = dataHL1997.l(1,2);
 
+lceNEndExp = 0.790;
+fpeNEndExp = 0.015;
+flNEndExp  = 0.883;
 
 
-flN0Exp = dataHL1997.fa(1,1);
-flN1Exp = dataHL1997.fa(1,2);
+manualAdjustmentflN0Exp = 0;%0.015;
+manualAdjustmentflN1Exp = 0;%0.015;
 
-lceN2Exp = 0.792;
-flN2Exp  = 0.91;
-
+flN0Exp = dataHL1997.fa(1,1) + manualAdjustmentflN0Exp;
+flN1Exp = dataHL1997.fa(1,2) + manualAdjustmentflN1Exp;
 
 lceOpt  = catSoleusHL1997.lceOptAT;
 dWdes   = 0.3852852;
@@ -88,12 +90,12 @@ Fmax    = 41.351296;
 FPEE    = 0.654342;
 FPEEupd = FPEE*1.7;
 LPEE0   = 1.0063986;
-LPEE0upd =1.0063986-0.203145; 
+LPEE0upd =0.79;%1.0063986-0.203145; 
 nuPEE   = 1.5907747; 
-
+nuPEEUpd= 1.5907747; 
 
 %%
-%Sample tendon force length curve
+%Plot the tendon force length curve
 %%
 lSEE0    = 0.0304511;
 dUSEEnll = 0.0347222;
@@ -114,6 +116,8 @@ idxLtMin = find(fseeN > 0.01,1);
 ltNFmax = interp1(fseeN(idxLtMin:end),ltN(idxLtMin:end),1);
 kseN = calcCentralDifferenceDataSeries(ltN,fseeN);
 kseNFiso = interp1(ltN(idxLtMin:end),kseN(idxLtMin:end),ltNFmax);
+
+
 
 %%
 % Solve for the parameters that shift the fpe curve to the left until
@@ -144,18 +148,28 @@ dlceN1ltN1 = (ltN1Exp-lSEE0)/lceOpt;
 
 manualScalingLceN1 = (0.076/0.118717);
 
+
+% 0: shortest length
+% 1: middle length
+% 2: longest length (start of the shortenint)
 targetPointsFpe.lceN0  = lceN1Exp-dlceN1ltN1;
 targetPointsFpe.fpeN0  = fpeN1Exp*manualScalingLceN1;
-targetPointsFpe.lceN1  = lceFmax/lceOpt;
-targetPointsFpe.fpeN1  = Fmax/Fmax;
-targetPointsFpe.dfpeN1 = kpeTarget;
+targetPointsFpe.lceN1  = lceNEndExp;%lceN1Exp-dlceN1ltN1;
+targetPointsFpe.fpeN1  = fpeNEndExp;%fpeN1Exp*manualScalingLceN1;
+targetPointsFpe.lceN2  = lceFmax/lceOpt;
+targetPointsFpe.fpeN2  = Fmax/Fmax;
+targetPointsFpe.dfpeN2 = kpeTarget;%dfpee*(lceOpt/Fmax);
 
 
 errFcnFpe = @(arg)calcFpeErrEHTMM(arg, fpeeParams,targetPointsFpe);
-x0 = [LPEE0upd;FPEEupd];
+x0 = [LPEE0upd;FPEEupd;nuPEEUpd];
 [x, fval] = lsqnonlin(errFcnFpe,x0);
+x0=x;
+[x, fval] = lsqnonlin(errFcnFpe,x0);
+
 LPEE0upd=x(1,1);
 FPEEupd=x(2,1);
+nuPEEUpd=x(3,1);
 
 disp('Optimized fpe parameters');
 fprintf('%e\tLPEE0\n%e\tFPEE\n',LPEE0upd,FPEEupd);
@@ -175,16 +189,24 @@ fisomParams.dWasc   = dWasc;
 fisomParams.nuCEasc = nuCEasc;
 fisomParams.lceOpt=lceOpt;
 
-targetPointsFisom.lceN0   = lceN0Exp;
-targetPointsFisom.flN0    = flN0Exp;
-targetPointsFisom.lceN1   = lceN1Exp;
-targetPointsFisom.flN1    = flN1Exp;
+lceN1Active = 0.891;
+fpe1Active = calcFpeeUmat41(lceN1Active*lceOpt, lceOpt,dWdes,...
+                               Fmax,FPEEupd,LPEE0upd,nuPEEUpd);
+fpeN1Active = fpe1Active/Fmax;
+fmtN1 = 1.03306;
+manualflN1Exp = (fmtN1-fpeN1Active);
 
-targetPointsFisom.lceN2   = lceN2Exp;
-targetPointsFisom.flN2    = flN2Exp;
+targetPointsFl.lceN0   = lceN0Exp;
+targetPointsFl.flN0    = flN0Exp;
+targetPointsFl.lceN1   = lceNEndExp;
+targetPointsFl.flN1    = flNEndExp;
+targetPointsFl.lceN2   = lceN1Exp;
+targetPointsFl.flN2    = flN1Exp;%manualflN1Exp;
+%flN1Exp;%min(flN1Exp*((1.03486-0.0760336)/(1.00388-0.0898021)),0.975);
 
 
-errFcnFisom= @(arg)calcFisomErrEHTMM(arg, fisomParams,targetPointsFisom);
+
+errFcnFisom= @(arg)calcFisomErrEHTMM(arg, fisomParams,targetPointsFl);
 x0 = [dWasc;nuCEasc];
 [x, fval] = lsqnonlin(errFcnFisom,x0);
 dWasc   = x(1,1);
@@ -215,7 +237,7 @@ for i=1:1:length(lceN)
     dfpeN(i,1)=dfpeN(i,1)*(1/Fmax)*(lceOpt);
 
     fpeNupd(i,1) = calcFpeeUmat41(lceN(i,1)*lceOpt, lceOpt,dWdes,...
-                               Fmax,FPEEupd,LPEE0upd,nuPEE);
+                               Fmax,FPEEupd,LPEE0upd,nuPEEUpd);
     fpeNupd(i,1) = fpeNupd(i,1)/Fmax;
 
     falN(i,1) = calcFisomUmat41(lceN(i,1)*lceOpt,lceOpt,dWdes, nuCEdes, dWasc, nuCEasc);
@@ -224,20 +246,27 @@ end
 
 idxMin = find(fpeN > 0.01,1);
 
-lceN1 = interp1(fpeN(idxMin:end,1),...
+lceN0 = interp1(fpeN(idxMin:end,1),...
                 lceN(idxMin:end,1),...
-                fpeN1Exp);
-dlceN1 = lceN1Exp-lceN1;
+                targetPointsFpe.fpeN0);
+dlceN1 = lceN1Exp-lceN0;
+
+lceNEnd = interp1(fpeN(idxMin:end,1),...
+                lceN(idxMin:end,1),...
+                fpeNEndExp);
+dlceNEnd = lceNEndExp-lceNEnd;
 
 idxMin = find(fpeNupd > 0.01,1);
 
-lceN1upd = interp1(fpeNupd(idxMin:end,1),...
+lceN0upd = interp1(fpeNupd(idxMin:end,1),...
                 lceN(idxMin:end,1),...
-                fpeN1Exp);
-dlceN1upd = lceN1Exp-lceN1upd;
+                targetPointsFpe.fpeN0);
+dlceN1upd = lceN1Exp-lceN0upd;
 
 
-
+%%
+%Plot the curves
+%%
 fig=figure;
     subplot(1,4,1);
         plot(lceN,falN,'-k');
@@ -250,41 +279,48 @@ fig=figure;
         hold on     
         plot(lceN1Exp,flN1Exp,'xk');
         hold on
-        plot([0.5,1.5],[1,1].*flN2Exp,'-k');
+        plot([0.5,1.5],[1,1].*flNEndExp,'-k');
         hold on     
-        plot(lceN2Exp,flN2Exp,'xk');
+        plot(lceNEndExp,flNEndExp,'xk');
         hold on
+
 
         xlabel('Norm. Length ($$\ell/\ell^M_o$$)');
         ylabel('Norm. Force ($$f/f^M_o$$)');
         title('Active Force Length Relation');
     
     subplot(1,4,2);
+    
         plot(lceN,fpeN,'-k');
         hold on;
         plot(lceN,fpeNupd,'-b');
         hold on;
-        plot(lceN1Exp,fpeN1Exp,'xk');
+        plot(targetPointsFpe.lceN0,targetPointsFpe.fpeN0,'xk');
         hold on
-        plot(lceN0Exp,fpeN0Exp,'xk');
-        hold on
-        text(lceN1Exp,fpeN1Exp+0.05,...
-            sprintf('%1.6f',lceN1Exp),...
+%         plot(lceN0Exp,fpeN0Exp,'xk');
+%         hold on
+%         plot(lceNEndExp,fpeNEndExp,'xk');
+%         hold on
+
+        text(targetPointsFpe.lceN0,targetPointsFpe.fpeN0+0.05,...
+            sprintf('%1.6f\n%1.6f',...  
+                    targetPointsFpe.lceN0,...
+                    (lceNEnd-targetPointsFpe.lceN0)),...
             'HorizontalAlignment','right');
         hold on
-        text(lceN1,fpeN1Exp+0.05,...
-            sprintf('%1.6f',lceN1),...
-            'HorizontalAlignment','left');  
-        text(lceN1,fpeN1Exp-0.05,...
-            sprintf('%1.6f',dlceN1),...
-            'HorizontalAlignment','center');  
-        hold on;
-        text(lceN1upd,fpeN1Exp-0.05,...
-            sprintf('%1.6f',dlceN1upd),...
-            'HorizontalAlignment','center');  
-        hold on;
+%         text(lceN1,fpeN1Exp+0.05,...
+%             sprintf('%1.6f',lceN1),...
+%             'HorizontalAlignment','left');  
+%         text(lceN1,fpeN1Exp-0.05,...
+%             sprintf('%1.6f',dlceN1),...
+%             'HorizontalAlignment','center');  
+%         hold on;
+%         text(lceN1upd,fpeN1Exp-0.05,...
+%             sprintf('%1.6f',dlceN1upd),...
+%             'HorizontalAlignment','center');  
+%         hold on;
 
-        plot([lceN1Exp,lceN1],...
+        plot([targetPointsFpe.lceN0,lceN0],...
             [1,1].*fpeN1Exp,'-r');
 
         xlabel('Norm. Length ($$\ell/\ell^M_o$$)');
@@ -311,3 +347,4 @@ fig=figure;
         xlabel('Norm. Length ($$\ell^T/\ell^T_{s}$$)');
         ylabel('Norm. Force ($$f^T/f^M_o$$)');
         title('Tendon Force Length');
+

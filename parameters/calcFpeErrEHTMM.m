@@ -27,4 +27,4 @@ dfpeNFmax   = dfpeFmax*(lceOpt/Fmax);
 
 err1    = dfpeNFmax-dfpeN1Target; 
 
-errVal = err0*err0 + err1*err1;
+errVal = [err0; err1];
