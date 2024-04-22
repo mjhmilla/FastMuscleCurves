@@ -77,7 +77,29 @@ function [humanSoleusMusculotendonProperties, ...
 %  Arnold EM, Delp SL. Fibre operating lengths of human lower limb muscles
 %  during walking. Philos Trans R Soc Lond B, Biol Sci 2011;366(1570):1530–9.
 %%
-maximumNormalizedFiberVelocity = 10.0; % in units of norm fiber lengths/second
+
+% Update: 22 April 2024
+%
+% When a Hill force-velocity curve is fit to the data of Fontana et al.
+% vceMax is 5.66 l/s. The minimum fiber velocity that is consistent
+% with Nikolaidou et al.'s data is 5.57 l/s. The average is 5.615 lo/s.
+%
+% The value of the force velocity curve at half vmax is 0.21873 and 0.1975
+% respectively, the average of which is 0.2081.
+%
+% de Brito Fontana H, Roesler H, Herzog W. In vivo vastus lateralis 
+% force–velocity relationship at the fascicle and muscle tendon unit level. 
+% Journal of Electromyography and Kinesiology. 2014 Dec 1;24(6):934-40.
+%
+% Nikolaidou ME, Marzilger R, Bohm S, Mersmann F, Arampatzis A. Operating 
+% length and velocity of human M. vastus lateralis fascicles during 
+% vertical jumping. Royal Society Open Science. 2017 May 3;4(5):170185.
+%
+
+maximumNormalizedFiberVelocity = 5.615; % in units of norm fiber lengths/second
+forceVelocityMultiplierAtHalfMaximumFiberVelocity = 0.2081;  
+
+% Update: 22 April 2024
 
 % The slow-twitch fibers plotted in Fig. 3 of Ranatunga 1984 develop a 
 % normalized force of 0.1 at half the maximum contraction velocity. I am
@@ -87,7 +109,7 @@ maximumNormalizedFiberVelocity = 10.0; % in units of norm fiber lengths/second
 % Ranatunga KW. The force‐velocity relation of rat fast‐and slow‐twitch muscles 
 % examined at different temperatures. The Journal of physiology. 1984 Jun 1;
 % 351(1):517-29.
-forceVelocityMultiplierAtHalfMaximumFiberVelocity = 0.1;  
+% forceVelocityMultiplierAtHalfMaximumFiberVelocity = 0.1;  
 
 
 % Fit to in-vivo data of the human Achilles tendon from Magnusson et al.

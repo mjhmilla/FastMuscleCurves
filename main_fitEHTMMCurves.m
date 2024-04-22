@@ -78,7 +78,7 @@ flN0Exp = dataHL1997.fa(1,1);
 flN1Exp = dataHL1997.fa(1,2);
 
 lceN2Exp = 0.792;
-flN2Exp  = 0.91;
+flN2Exp  = 0.88-(0.897-0.91);
 
 
 lceOpt  = catSoleusHL1997.lceOptAT;

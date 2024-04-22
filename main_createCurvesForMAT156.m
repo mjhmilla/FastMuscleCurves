@@ -16,8 +16,8 @@ flag_solveForHerzogLeonard1997Params=1;
 flag_addTendonStretchToFpe          = 0;
 
 flag_offsetFpeToBeZeroAtFinalLength = 1;
-fpeNShift.fpeN = 0.015;
-fpeNShift.fpeNTarget = 0.001;
+fpeNShift.fpeN        = 0.015;
+fpeNShift.fpeNTarget  = 0.005;
 
 %%
 % Architectural Parameters from the LS-DYNA files
@@ -205,15 +205,7 @@ for i=1:1:length(fpeValues.x)
     end    
 end
 
-%Evaluate the passive-force-length curve along the tendon
-lceNA = calcQuadraticBezierYFcnXDerivative(fpeNShift.fpeN,...
-            felineSoleusNormMuscleQuadraticCurves.fiberForceLengthInverseCurve,0);
-lceNB = calcQuadraticBezierYFcnXDerivative(fpeNShift.fpeNTarget,...
-            felineSoleusNormMuscleQuadraticCurves.fiberForceLengthInverseCurve,0);
-if(flag_offsetFpeToBeZeroAtFinalLength==1) 
-    disp('To zero fpe at final ramp length shift by');
-    fprintf('%1.6f\n',(lceNA-lceNB));
-end
+
 
 for i=1:1:length(fpeAdjustedValues.x)
     fiberKinematics = calcFixedWidthPennatedFiberKinematicsAlongTendon(...
@@ -237,10 +229,7 @@ for i=1:1:length(fpeAdjustedValues.x)
         fpeAdjustedValues.xAT(i,1) = (lceAT)/lceOptAT;
     end
 
-    if(flag_offsetFpeToBeZeroAtFinalLength==1)    
-        fpeAdjustedValues.xAT(i,1) = fpeAdjustedValues.xAT(i,1) + (lceNA-lceNB);  
-    end    
-
+  
     fpeAdjustedValues.yAT(i,1) = fpeNAT;
 
     if(fiberKinematics.isClamped)
@@ -449,6 +438,23 @@ if(flag_solveForHerzogLeonard1997Params==1)
         plot(lceN2Exp,flN2Exp,'xk');
         hold on
     
+end
+
+%Evaluate the passive-force-length curve along the tendon
+if(flag_offsetFpeToBeZeroAtFinalLength==1) 
+    lceNA = calcQuadraticBezierYFcnXDerivative(fpeNShift.fpeN,...
+                felineSoleusNormMuscleQuadraticCurves.fiberForceLengthInverseCurve,0);
+    lceNB = calcQuadraticBezierYFcnXDerivative(fpeNShift.fpeNTarget,...
+                felineSoleusNormMuscleQuadraticCurves.fiberForceLengthInverseCurve,0);
+    fpeAdjustedValues.xAT = fpeAdjustedValues.xAT + (lceNA-lceNB);  
+
+    subplot(1,3,2);
+        plot(fpeAdjustedValues.xAT,...
+             fpeAdjustedValues.yAT,'-k');
+        hold on;
+
+    disp('To zero fpe at final ramp length shift by');
+    fprintf('%1.6f\n',(lceNA-lceNB));
 end
 
 if(flag_adjustCurvesImplicitlyIncludeTendon==1)
