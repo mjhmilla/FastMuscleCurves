@@ -18,7 +18,7 @@ catSoleusHL2002.penOpt  =0.1221730;
 catSoleusHL2002.penOptD =7.0 ;
 catSoleusHL2002.ltSlk   =0.0304511;
 catSoleusHL2002.et      =0.0458333;
-catSoleusHL2002.vceMax  =4.50;
+catSoleusHL2002.vceMax  =4.650;
 
 catSoleusHL1997.lceOpt  =0.038;
 catSoleusHL1997.fceOpt  =41.661837;
@@ -29,8 +29,7 @@ catSoleusHL1997.penOpt  =0.1221730;
 catSoleusHL1997.penOptD =7.0 ;
 catSoleusHL1997.ltSlk   =0.0304511;
 catSoleusHL1997.et      =0.0458333;
-catSoleusHL1997.vceMax  =4.50;
-
+catSoleusHL1997.vceMax  =4.650;
 
 
 vceMax      = 4.5;
@@ -72,8 +71,6 @@ lceN0Exp = dataHL1997.l(1,1);
 fpeN1Exp = dataHL1997.fpe(1,2);
 lceN1Exp = dataHL1997.l(1,2);
 
-
-
 flN0Exp = dataHL1997.fa(1,1);
 flN1Exp = dataHL1997.fa(1,2);
 
@@ -82,13 +79,13 @@ flN2Exp  = 0.88-(0.897-0.91);
 
 
 lceOpt  = catSoleusHL1997.lceOptAT;
-dWdes   = 0.3852852;
-nuCEdes = 1.9043187;
+dWdes   = 0.470961;
+nuCEdes = 1.328409;
 Fmax    = 41.351296;
-FPEE    = 0.654342;
-FPEEupd = FPEE*1.7;
-LPEE0   = 1.0063986;
-LPEE0upd =1.0063986-0.203145; 
+FPEE    = 2.031664339235247;
+FPEEupd = FPEE*1.;
+LPEE0   = 0.817625283209556;
+LPEE0upd =LPEE0; 
 nuPEE   = 1.5907747; 
 
 
@@ -98,7 +95,7 @@ nuPEE   = 1.5907747;
 lSEE0    = 0.0304511;
 dUSEEnll = 0.0347222;
 dUSEEl   = 0.0222222;
-dFSEE0   = 30*(30/32.64);%14.337374;
+dFSEE0   = 27.5735;%30*(30/32.64);%14.337374;
 
 ltN = [1:0.001:1.12]';
 fsee = zeros(length(ltN),1);
@@ -120,35 +117,37 @@ kseNFiso = interp1(ltN(idxLtMin:end),kseN(idxLtMin:end),ltNFmax);
 % it intersects the desired point
 %%
 
-fpeeParams.lceOpt=lceOpt;
-fpeeParams.dWdes=dWdes;
-fpeeParams.nuCEdes=nuCEdes;
-fpeeParams.Fmax=Fmax;
-fpeeParams.FPEE=FPEE;
-fpeeParams.LPEE0=LPEE0;
-fpeeParams.nuPEE=nuPEE;
+fpeeParams.lceOpt   = lceOpt;
+fpeeParams.dWdes    = dWdes;
+fpeeParams.nuCEdes  = nuCEdes;
+fpeeParams.Fmax     = Fmax;
+fpeeParams.FPEE     = FPEE;
+fpeeParams.LPEE0    = LPEE0;
+fpeeParams.nuPEE    = nuPEE;
+fpeeParams.lSEE0    = lSEE0;
+fpeeParams.dUSEEnll = dUSEEnll;
+fpeeParams.dUSEEl   = dUSEEl;
+fpeeParams.dFSEE0   = dFSEE0;
 
 lceFmax = calcFpeeInverseUmat41(Fmax, lceOpt,dWdes,Fmax,FPEE,LPEE0,nuPEE);
 dfpee   = calcFpeeDerivativeUmat41(lceFmax, lceOpt,dWdes,Fmax,FPEE,LPEE0,nuPEE);
 
 mm2m=0.001;
-manualScalingKmt = (3.78/3.88);%3.7814/3.878670196770834;
+manualScalingKmt = 1;%(3.78/3.88);
 
 % Target of 3.7814 N/mm comes from wanting to match the stiffness of
 % the umat43 (VEXAT) cat soleus model
-kmtTarget = 3.7814*manualScalingKmt*(1/mm2m)*(lceOpt/Fmax);
-kpeTarget = ((1/kmtTarget)-(1/kseNFiso))^-1;
+%kmtTarget = ;
+%kpeTarget = ((1/kmtTarget)-(1/kseNFiso))^-1;
 
-ltN1Exp = calcFseeInverseUmat41(fpeN1Exp,lSEE0,dUSEEnll,dUSEEl,dFSEE0);
-dlceN1ltN1 = (ltN1Exp-lSEE0)/lceOpt;
+%ltN1Exp = calcFseeInverseUmat41(fpeN1Exp,lSEE0,dUSEEnll,dUSEEl,dFSEE0);
+%dlceN1ltN1 = (ltN1Exp-lSEE0)/lceOpt;
 
-manualScalingLceN1 = (0.076/0.118717);
 
-targetPointsFpe.lceN0  = lceN1Exp-dlceN1ltN1;
-targetPointsFpe.fpeN0  = fpeN1Exp*manualScalingLceN1;
-targetPointsFpe.lceN1  = lceFmax/lceOpt;
+targetPointsFpe.lceN0  = lceN1Exp;
+targetPointsFpe.fpeN0  = fpeN1Exp;
 targetPointsFpe.fpeN1  = Fmax/Fmax;
-targetPointsFpe.dfpeN1 = kpeTarget;
+targetPointsFpe.dfpeN1 = 3.7814*manualScalingKmt*(1/mm2m)*(lceOpt/Fmax);
 
 
 errFcnFpe = @(arg)calcFpeErrEHTMM(arg, fpeeParams,targetPointsFpe);
@@ -164,10 +163,10 @@ fprintf('%e\tLPEE0\n%e\tFPEE\n',LPEE0upd,FPEEupd);
 % Active force-length curve
 %%
 
-dWdes   = 0.3852852;
-nuCEdes = 1.9043187;
-dWasc   = 0.57;%0.4005710;
-nuCEasc = 1.9;%4.5843765;
+dWdes   = 0.470961;
+nuCEdes = 1.328409;
+dWasc   = 0.5656740;%0.4005710;
+nuCEasc = 2.082109;%4.5843765;
 
 fisomParams.dWdes   = dWdes;
 fisomParams.nuCEdes = nuCEdes;

@@ -8,7 +8,9 @@ function [A,B,C,D,E,F] = ...
 xShift=0;
 xShiftWidth=(max(x1,xPoint)-min(x0,xPoint));
 
-assert( yPoint >= yNegInf && yPoint <= yInf);
+assert( (yPoint >= yNegInf && yPoint <= yInf && (yInf-yNegInf) > 0) ...
+       || (yPoint <= yNegInf && yPoint >= yInf  && (yNegInf-yInf) > 0),...
+       'Error: yPoint must be between yNegInf and yNeg');
 
 assert(isinf(yNegInf) || isinf(yInf), ...
     ['Error: this function has been formulated so that the function ',...
@@ -75,7 +77,7 @@ yErrBest        = abs(yValue-yPoint);
 xShiftBest      = 0;
 BBest = B;
 
-for i=1:1:12
+for i=1:1:20
     %B and C can be adjusted
     %B = x0 + (x1-x0)*0.5;% + xShift;
         

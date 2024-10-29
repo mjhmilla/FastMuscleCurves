@@ -1,5 +1,5 @@
 function status = writeQuadraticBezierCurveSamplesToCSV(...
-    structOfMuscleCurves,nPts,muscleName,folder)
+    structOfMuscleCurves,nPts,muscleName,folder,flag_extendedDomain)
 
 status=0;
 
@@ -15,6 +15,13 @@ for indexCurve=1:1:length(curveNames)
     xSpan = diff(xEnd);
     x0 = xEnd(1,1) - xSpan*0.1;
     x1 = xEnd(1,2) + xSpan*0.1;
+
+    if(flag_extendedDomain==1)
+        dx = x1-x0;
+        x0 = x0-3*dx;
+        x1 = x1+3*dx;
+        nPts=nPts*3;
+    end
 
     xSamples = [x0:((x1-x0)/(nPts)):x1]';
 

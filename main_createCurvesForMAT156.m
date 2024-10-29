@@ -13,11 +13,16 @@ flag_adjustCurvesImplicitlyIncludeTendon = 0;
 
 flag_solveForHerzogLeonard1997Params=1;
 
-flag_addTendonStretchToFpe          = 0;
+flag_addTendonStretchToFpe          = 1;
 
-flag_offsetFpeToBeZeroAtFinalLength = 1;
-fpeNShift.fpeN        = 0.015;
-fpeNShift.fpeNTarget  = 0.005;
+
+flag_offsetFpeToBeZeroAtFinalLength = 0;
+fpeNShift.fpeN        = 0;%0.015;
+fpeNShift.fpeNTarget  = 0;%0.005;
+
+fpeNScale = 3.78/3.85; %To account for the small amount of error between
+                        %the fpe curve and the fpe curve created by 
+                        %titin's segments and the ecm
 
 %%
 % Architectural Parameters from the LS-DYNA files
@@ -32,7 +37,7 @@ catSoleusHL2002.penOpt  =0.1221730;
 catSoleusHL2002.penOptD =7.0 ;
 catSoleusHL2002.ltSlk   =0.0304511;
 catSoleusHL2002.et      =0.0458333;
-catSoleusHL2002.vceMax  =4.50;
+catSoleusHL2002.vceMax  =4.650;
 
 catSoleusHL1997.lceOpt  =0.038;
 catSoleusHL1997.fceOpt  =41.661837;
@@ -43,7 +48,7 @@ catSoleusHL1997.penOpt  =0.1221730;
 catSoleusHL1997.penOptD =7.0 ;
 catSoleusHL1997.ltSlk   =0.0304511;
 catSoleusHL1997.et      =0.0458333;
-catSoleusHL1997.vceMax  =4.50;
+catSoleusHL1997.vceMax  =4.650;
 
 vceMax      = 4.5;
 
@@ -79,6 +84,7 @@ addpath(parametersDirectoryTreePostProcessing);
 
 load('output/structs/defaultFelineSoleusQuadraticCurves.mat');
 load('output/structs/defaultFelineSoleus.mat');
+
 npts  = 100;
 domain= [] ; %Take the default extended range
 
@@ -89,6 +95,13 @@ falValues = calcQuadraticBezierYFcnXCurveSampleVector(...
 fpeValues = calcQuadraticBezierYFcnXCurveSampleVector(...
   felineSoleusNormMuscleQuadraticCurves.fiberForceLengthCurve,...
   npts, domain);
+
+fpeFields=fields(fpeValues);
+for i=1:1:length(fpeFields)
+    if(contains(fpeFields{i},'y'))
+        fpeValues.(fpeFields{i})=fpeValues.(fpeFields{i}).*fpeNScale;
+    end
+end
 
 fvValues = calcQuadraticBezierYFcnXCurveSampleVector(...
   felineSoleusNormMuscleQuadraticCurves.fiberForceVelocityCurve,...
@@ -322,7 +335,6 @@ subplot(1,3,2);
     hold on;
 
 
-
     plot(fpeAdjustedValues.x,fpeAdjustedValues.y,'--','Color',[0.5,0.5,1]);
     hold on;    
     plot(fpeAdjustedValues.xAT,fpeAdjustedValues.yAT,'-','Color',[0,0,1]);
@@ -483,7 +495,7 @@ if(flag_adjustCurvesImplicitlyIncludeTendon==1)
         xlabel('$$\tilde{\ell}^{M}$$');
         ylabel('$$\tilde{f}^{PE}$$');
         box off;
-        
+        xlim([0,1.5]);
     subplot(1,3,3);
         plot(vceNAT_fvNAT,fvNAT,'--','Color',[1,0,1]);
         hold on;
@@ -501,6 +513,8 @@ if(flag_adjustCurvesImplicitlyIncludeTendon==1)
         'output/fortran/MAT156Tables/defaultFelineSoleusQ_forceVelocityCurve_implicitRigidTendon.f');
         
 end
+subplot(1,3,2); 
+xlim([0,1.5]);
 
 disp('To do: write umat43 and MAT 156 architectural properties to file');
 
