@@ -1,4 +1,4 @@
-function figH = addTanhForceVelocityCurveComparison(figH,...
+function figH = addTanhForceVelocityCurveComparison01(figH,...
     plotSettings, flag_usingOctave)
 
 flag_fitfvCurve=1;
@@ -46,124 +46,158 @@ tanhSeriesParams(2) = ...
 
 optParams(2) = struct('names',{''});
 
-x0   = -1.5;
-y0   = calcBezierYFcnXDerivative(x0,fiberForceVelocityCurve,0);
-dydx0= 0;%calcBezierYFcnXDerivative(x0,fiberForceVelocityCurve,1);
-
-x1   = 0;
-y1   = calcBezierYFcnXDerivative(x1,fiberForceVelocityCurve,0);
-dydx1= calcBezierYFcnXDerivative(x1,fiberForceVelocityCurve,1)*1.1;
-
-
-yNegInf = 0;
-yInf    = inf;  
-
 dyPoint = 0.01;
+yInf    = inf;
+yNegInf = 0;
+wC = 0.4;
 
+idxT = 1;
 
-xScale      = 1.0;%1.75;
-xAtIntYZero = x0;
-xPoint = x1;
-yPoint = y1 + dyPoint;
+tanhSeriesParams(idxT).x0          = -1.5;
+tanhSeriesParams(idxT).x1          = 0;
+tanhSeriesParams(idxT).dydx0       = 0;
+tanhSeriesParams(idxT).dydx1       = ...
+    0.25*wC*calcBezierYFcnXDerivative(  ...
+        tanhSeriesParams(idxT).x1, ...
+        fiberForceVelocityCurve,1);
+tanhSeriesParams(idxT).yNegInf     = yNegInf;
+tanhSeriesParams(idxT).yInf        = yInf;
+tanhSeriesParams(idxT).xScale      = 1.0;
+tanhSeriesParams(idxT).xPoint      = tanhSeriesParams(idxT).x1;
+tanhSeriesParams(idxT).yPoint      = ...
+      wC*(calcBezierYFcnXDerivative(  ...
+        tanhSeriesParams(idxT).x1, ...
+        fiberForceVelocityCurve,0) ...
+        + dyPoint);
+tanhSeriesParams(idxT).xAtIntYZero = tanhSeriesParams(idxT).x0;
 
+optParams(idxT).names = {'x0','xScale','dydx1'};
 
-optParams(1).names = {'x0','dydx1'};
-args = [x0;dydx1];
+args = [tanhSeriesParams(idxT).x0;...
+        tanhSeriesParams(idxT).xScale; ...
+        tanhSeriesParams(idxT).dydx1];
 
-tanhSeriesParams(1).x0=x0;
-tanhSeriesParams(1).x1=x1;
-tanhSeriesParams(1).dydx0=dydx0;
-tanhSeriesParams(1).dydx1=dydx1;
-tanhSeriesParams(1).yNegInf=yNegInf;
-tanhSeriesParams(1).yInf=yInf;
-tanhSeriesParams(1).xScale=xScale;
-tanhSeriesParams(1).xPoint=xPoint;
-tanhSeriesParams(1).yPoint=yPoint;
-tanhSeriesParams(1).xAtIntYZero=xAtIntYZero;
-
-[A,B,C,D,E,F] = calcTanhSegmentCoefficientsUpd(...
-                    x0,x1,dydx0,dydx1,...
-                    yNegInf,yInf,...
-                    xScale,xPoint, yPoint, xAtIntYZero);
-
+[A,B,C,D,E,F] = calcTanhSegmentCoefficientsUpd( ...
+                    tanhSeriesParams(idxT).x0,     ...
+                    tanhSeriesParams(idxT).x1,     ...
+                    tanhSeriesParams(idxT).dydx0,  ...
+                    tanhSeriesParams(idxT).dydx1,  ...
+                    tanhSeriesParams(idxT).yNegInf,...
+                    tanhSeriesParams(idxT).yInf,   ...
+                    tanhSeriesParams(idxT).xScale, ...
+                    tanhSeriesParams(idxT).xPoint, ...
+                    tanhSeriesParams(idxT).yPoint, ...
+                    tanhSeriesParams(idxT).xAtIntYZero);
 
 forceVelocityTanhCoeffs = [A,B,C,D,E,F];  
 
+tanhSeriesParams(2).x0          = -0.6;
+tanhSeriesParams(2).x1          = 0;
+tanhSeriesParams(2).dydx0       = 0;
+tanhSeriesParams(2).dydx1       = ...
+    (1-wC)*calcBezierYFcnXDerivative(  ...
+            tanhSeriesParams(2).x1, ...
+            fiberForceVelocityCurve,1);
+tanhSeriesParams(2).yNegInf     = yNegInf;
+tanhSeriesParams(2).yInf        = yInf;
+tanhSeriesParams(2).xScale      = 1.0;
+tanhSeriesParams(2).xPoint      = tanhSeriesParams(idxT).x1;
+tanhSeriesParams(2).yPoint      = ...
+    (1-wC)*(calcBezierYFcnXDerivative(  ...
+            tanhSeriesParams(2).x1, ...
+            fiberForceVelocityCurve,0) ...
+            + dyPoint);
+tanhSeriesParams(2).xAtIntYZero = tanhSeriesParams(1).x0;
 
+optParams(2).names = {'x0','xScale','dydx1'};
+
+args = [args;...
+        tanhSeriesParams(2).x0;...
+        tanhSeriesParams(2).xScale; ...
+        tanhSeriesParams(2).dydx1];
+
+[A,B,C,D,E,F] = calcTanhSegmentCoefficientsUpd( ...
+                    tanhSeriesParams(2).x0,     ...
+                    tanhSeriesParams(2).x1,     ...
+                    tanhSeriesParams(2).dydx0,  ...
+                    tanhSeriesParams(2).dydx1,  ...
+                    tanhSeriesParams(2).yNegInf,...
+                    tanhSeriesParams(2).yInf,   ...
+                    tanhSeriesParams(2).xScale, ...
+                    tanhSeriesParams(2).xPoint, ...
+                    tanhSeriesParams(2).yPoint, ...
+                    tanhSeriesParams(2).xAtIntYZero);
+
+forceVelocityTanhCoeffs = [forceVelocityTanhCoeffs;...
+                           A,B,C,D,E,F];  
+
+
+%%
 %Get the slope at postive infinity
-dy=0;
-for i=1:1:size(forceVelocityTanhCoeffs,1)
-    A = forceVelocityTanhCoeffs(i,1);
-    B = forceVelocityTanhCoeffs(i,2);
-    C = forceVelocityTanhCoeffs(i,3);
-    D = forceVelocityTanhCoeffs(i,4);            
-    dy = dy + (A + D);
+%%
+flag_addEccentric=1;
+if(flag_addEccentric==1)
+    %Add a curve that will flatten the eccentric side to the desired final
+    %slope
+    
+    tanhSeriesParams(3).x0          = 0;
+    tanhSeriesParams(3).x1          = 0.5;
+    tanhSeriesParams(3).dydx0       = 0;
+    tanhSeriesParams(3).dydx1       = ...
+        (forceVelocityMultiplierAtMaximumEccentricFiberVelocity...
+        -forceVelocityMultiplierAtLowEccentricFiberVelocity)/(0.9) ...
+        - calcTanhSeriesDerivative(1e6,forceVelocityTanhCoeffs,1);
+    tanhSeriesParams(3).yNegInf     = 0;
+    tanhSeriesParams(3).yInf        = sign(tanhSeriesParams(3).dydx1)*yInf;
+    tanhSeriesParams(3).xScale      = 1;
+    tanhSeriesParams(3).xPoint      = 0;
+    tanhSeriesParams(3).yPoint      = -dyPoint;
+    tanhSeriesParams(3).xAtIntYZero = 0;
+    
+    optParams(3).names = {'x1','xScale'};
+    args = [args; 
+           tanhSeriesParams(3).x1;...
+           tanhSeriesParams(3).xScale];
+    
+    [A,B,C,D,E,F] = calcTanhSegmentCoefficientsUpd( ...
+                        tanhSeriesParams(3).x0,     ...
+                        tanhSeriesParams(3).x1,     ...
+                        tanhSeriesParams(3).dydx0,  ...
+                        tanhSeriesParams(3).dydx1,  ...
+                        tanhSeriesParams(3).yNegInf,...
+                        tanhSeriesParams(3).yInf,   ...
+                        tanhSeriesParams(3).xScale, ...
+                        tanhSeriesParams(3).xPoint, ...
+                        tanhSeriesParams(3).yPoint, ...
+                        tanhSeriesParams(3).xAtIntYZero);
+    
+    forceVelocityTanhCoeffs = [forceVelocityTanhCoeffs;...
+                               A,B,C,D,E,F];  
 end
 
-x20=0;
-x21=0.5;
-dydx20=0;
-
-y10     = calcTanhSeriesDerivative(x20,forceVelocityTanhCoeffs,0);
-y11     = calcTanhSeriesDerivative(x21,forceVelocityTanhCoeffs,0);
-dydx11  = calcTanhSeriesDerivative(1e6,forceVelocityTanhCoeffs,1);
-
-
-%Add a curve that will flatten the eccentric side to the desired final
-%slope
-dydx21 = calcBezierYFcnXDerivative(1,fiberForceVelocityCurve,1) -dydx11;
-xAtIntYZero=0;
-xScale = 1;
-
-optParams(2).names = {'x1','dydx1'};
-
-args        = [args; x21; dydx21];
-argScaling  = 1000;
-argsScaled  = args .* argScaling;
-
-tanhSeriesParams(2).x0=x20;
-tanhSeriesParams(2).x1=x21;
-tanhSeriesParams(2).dydx0=dydx20;
-tanhSeriesParams(2).dydx1=dydx21;
-tanhSeriesParams(2).yNegInf=yNegInf;
-tanhSeriesParams(2).yInf=sign(dydx21)*yInf;
-tanhSeriesParams(2).xScale=xScale;
-tanhSeriesParams(2).xPoint=0;
-tanhSeriesParams(2).yPoint=-dyPoint;
-tanhSeriesParams(2).xAtIntYZero=xAtIntYZero;
-
-
-[A,B,C,D,E,F] = calcTanhSegmentCoefficientsUpd(...
-                    x20,x21,dydx20,dydx21,...
-                    yNegInf,yInf,...
-                    xScale,0, 0, xAtIntYZero);
-forceVelocityTanhCoeffs = [forceVelocityTanhCoeffs;... 
-                           A,B,C,D,E,F];
-
-optDomain = [-0.8,3];
+optDomain = [-1,1];
+argScaling = 1000;
+argsScaled = args.*argScaling;
 
 errVec0 = calcTanhForceVelocityCurveError(argsScaled, optParams,...
-            tanhSeriesParams,fiberForceVelocityCurve, ...
-            optDomain,argScaling);
+            tanhSeriesParams,fiberForceVelocityCurve, optDomain,...
+            argScaling);
 
-errFcn = @(argInput)calcTanhForceVelocityCurveError(argInput,...
-                 optParams,tanhSeriesParams,fiberForceVelocityCurve,...
-                 optDomain,argScaling);
+errFcn = @(argInput)calcTanhForceVelocityCurveError(argInput,optParams,...
+           tanhSeriesParams,fiberForceVelocityCurve,optDomain,argScaling);
 
 if(flag_fitfvCurve==1)
 
     [argScaledUpd,resnorm,residual,exitflag,output]=lsqnonlin(errFcn,argsScaled);
     
     errVec1 = calcTanhForceVelocityCurveError(argScaledUpd, optParams,...
-                tanhSeriesParams,fiberForceVelocityCurve,...
-                optDomain,argScaling);
+                tanhSeriesParams,fiberForceVelocityCurve, optDomain,argsScaled);
+
+    argUpd = argScaledUpd ./ argScaling;
+
+    fprintf('%1.2e\tStarting Error\n%1.2e\tEnding Error',...
+             sqrt(sum(errVec0.^2)),sqrt(sum(errVec1.^2)));
     
-    argUpd = argScaledUpd./argScaling;
-
-    fprintf('%1.2e\tStarting Error\n%1.2e\tEnding Error\n',...
-             sqrt(sum(errVec0.^2)),sqrt(sum(errVec1.^2)));  
-    fprintf('%i\tExit flag',exitflag);
-
     localParams=tanhSeriesParams;
     idx=1;
     for i=1:1:length(optParams)
@@ -219,7 +253,7 @@ for i=2:1:3
         fvTanhSample(j,i) = calcTanhSeriesDerivative(vceN(j,1),...
                                        forceVelocityTanhCoeffs,i-2);
 
-        fvErrorSample(j,i)=fvTanhSample(j,i)-fvBezierSample(j,i);        
+        fvErrorSample(j,i)=fvTanhSample(j,i)-fvBezierSample(j,i);
 
 %         if(i==2)
 %             y0 =0.1+0.1*tanh((0-0.05)/0.01);
@@ -256,7 +290,6 @@ for i=2:1:3
                 hold on;
             end
         end
-
     end
     if(flag_plotBezierCurves==1 && flag_plotTanhCurves==1)
         plot(vceN,fvErrorSample(:,i),'-r','DisplayName','Error');
@@ -269,7 +302,6 @@ for i=2:1:3
         hold on;
 
     end
-
 %     if(flag_plotTanCurves==1)
 %         plot( lceN,fpeTanSample(:,i),...
 %               'Color',tanColor,'LineWidth',1,...
@@ -286,7 +318,10 @@ for i=2:1:3
             legend('Location','NorthEast');            
             legend boxoff;
         case 2
-            plot([x0;x1],[y0;y1],'o','MarkerSize',5,...
+            plot([tanhSeriesParams(1).x0;...
+                  tanhSeriesParams(1).x1],...
+                  [0;...
+                   tanhSeriesParams(1).yPoint],'o','MarkerSize',5,...
                 'Color',bezierColor,'MarkerFaceColor',[1,1,1]);
             hold on;
             title('Force-Velocity Curve Value');            
@@ -295,7 +330,10 @@ for i=2:1:3
 
             
         case 3
-            plot([x0;x1],[dydx0;dydx1],'o','MarkerSize',5,...
+            plot([tanhSeriesParams(1).x0;...
+                  tanhSeriesParams(1).x1],...
+                  [tanhSeriesParams(1).dydx0;...
+                   tanhSeriesParams(1).dydx1],'o','MarkerSize',5,...
                 'Color',bezierColor,'MarkerFaceColor',[1,1,1]);
             hold on;
 

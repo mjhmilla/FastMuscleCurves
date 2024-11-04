@@ -1,6 +1,7 @@
-function errVector = calcTanhForceVelocityCurveError(arg, argNames, params,...
-                        bezierCurve, domain)
+function errVector = calcTanhForceVelocityCurveError(argScaled, argNames, params,...
+                        bezierCurve, domain, argScaling)
 
+arg = argScaled ./ argScaling;
 abcdefParams=zeros(length(params),6);
 
 localParams = params;
@@ -26,11 +27,11 @@ for i=1:1:length(localParams)
     yPoint      =localParams(i).yPoint;
     xAtIntYZero =localParams(i).xAtIntYZero;
 
-    if(i==2)
-        dydxB = calcBezierYFcnXDerivative(1,bezierCurve,1);
-        dydxT = calcTanhSeriesDerivative(1,abcdefParams(1,:),1);
-        dydx1 = dydxB-dydxT;
-    end
+%     if(i==2)
+%         dydxB = calcBezierYFcnXDerivative(1,bezierCurve,1);
+%         dydxT = calcTanhSeriesDerivative(1,abcdefParams(1,:),1);
+%         dydx1 = dydxB-dydxT;
+%     end
     [A,B,C,D,E,F] = calcTanhSegmentCoefficientsUpd(...
                     x0,x1,dydx0,dydx1,...
                     yNegInf,yInf,...
