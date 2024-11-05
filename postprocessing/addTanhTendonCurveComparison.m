@@ -1,5 +1,9 @@
 function figH = addTanhTendonCurveComparison(figH,...
-    plotSettings, flag_usingOctave)
+                        tendonCurveParams,...
+                        tendonForceLengthCurve,...
+                        ftDomainTest, ...
+                        plotSettings,...
+                        flag_usingOctave)
 
 subPlotPanel            = plotSettings.subPlotPanel;
 indexPlotRow            = plotSettings.indexPlotRow;
@@ -8,98 +12,129 @@ flag_plotTanhCurves     = plotSettings.flag_plotTanhCurves;
 flag_plotTanCurves      = plotSettings.flag_plotTanCurves;
 bezierColor             = plotSettings.bezierColor;
 tanhColor               = plotSettings.tanhColor;
+tanhErrorColor          = plotSettings.tanhErrorColor;
 tanColor                = plotSettings.tanColor;
 
 %%
 % Create a C2 Quintic tendon force length curve
 %%
 
-flag_enableNumericallyNonZeroGradients  = 0;
-smallNumericallyNonZeroNumber           = sqrt(sqrt(eps));
-smallNumericallyNonZeroSlope            = sqrt(eps);
-eZero           = 1.0;
-eIso            = 0.049;
-kIso            = 1.375/eIso;
-fToe            = 2./3.;
-curvinessTendon = 0.5;
-computeIntegral = 1;
-minimumSlope    = 0;
-if(flag_enableNumericallyNonZeroGradients==1)
-  minimumSlope = smallNumericallyNonZeroNumber/10.;
+
+x0      = tendonCurveParams.ltZeroN;
+x1      = tendonCurveParams.ltToeN;
+y0      = 0;
+y1      = tendonCurveParams.fToeN;
+dydx0   = 0;
+dydx1   = tendonCurveParams.kToeN;
+
+
+
+
+tanhSeriesParams(1).x0             = tendonCurveParams.ltZeroN;
+tanhSeriesParams(1).x1             = tendonCurveParams.ltToeN;
+tanhSeriesParams(1).dydx0          = 0;
+tanhSeriesParams(1).dydx1          = tendonCurveParams.kToeN;
+tanhSeriesParams(1).yNegInf        = 0;
+tanhSeriesParams(1).yInf           = inf;
+tanhSeriesParams(1).xScale         = 0.9;
+tanhSeriesParams(1).xPoint         = tendonCurveParams.ltIsoN;
+tanhSeriesParams(1).yPoint         = 1;
+tanhSeriesParams(1).xAtIntYZero    = 0;
+
+[A,B,C,D,E,F] = calcTanhSegmentCoefficientsUpd( ...
+                    tanhSeriesParams(1).x0,     ...
+                    tanhSeriesParams(1).x1,     ...
+                    tanhSeriesParams(1).dydx0,  ...
+                    tanhSeriesParams(1).dydx1,  ...
+                    tanhSeriesParams(1).yNegInf,...
+                    tanhSeriesParams(1).yInf,   ...
+                    tanhSeriesParams(1).xScale, ...
+                    tanhSeriesParams(1).xPoint, ...
+                    tanhSeriesParams(1).yPoint, ...
+                    tanhSeriesParams(1).xAtIntYZero);
+
+tanhSeriesCoefficients = [A,B,C,D,E,F];
+
+optParams.names={'x0','x1','xScale'};
+args        = [tanhSeriesParams(1).x0;...
+               tanhSeriesParams(1).x1;...
+               tanhSeriesParams(1).xScale];
+
+argScaling  = 1000;
+argsScaled  = args .* argScaling;
+
+errFcn = @(argInput)calcTanhCurveError(argInput,...
+                 optParams,tanhSeriesParams,...
+                 tendonForceLengthCurve,...
+                 ftDomainTest,...
+                 argScaling);
+
+errVec0 = errFcn(argsScaled);
+
+[argScaledUpd,resnorm,residual,exitflag,output]=...
+    lsqnonlin(errFcn,argsScaled);
+argUpd = argScaledUpd./argScaling;
+
+errVec1 = errFcn(argScaledUpd);
+
+fprintf('%1.2e\tStarting Error\n%1.2e\tEnding Error\n',...
+         sqrt(sum(errVec0.^2)),sqrt(sum(errVec1.^2)));  
+fprintf('%i\tExit flag\n',exitflag);
+
+localParams=tanhSeriesParams;
+idx=1;
+for i=1:1:length(optParams)
+
+    varNames = optParams(i).names;
+    for j=1:1:length(varNames)
+        localParams(i).(varNames{j})=argUpd(idx,1);
+        idx=idx+1;
+    end
+
+    x0_          =localParams(i).x0;
+    x1_          =localParams(i).x1;
+    dydx0_       =localParams(i).dydx0;
+    dydx1_       =localParams(i).dydx1;
+    yNegInf_     =localParams(i).yNegInf;
+    yInf_        =localParams(i).yInf;
+    xScale_      =localParams(i).xScale;
+    xPoint_      =localParams(i).xPoint;
+    yPoint_      =localParams(i).yPoint;
+    xAtIntYZero_ =localParams(i).xAtIntYZero;
+
+    [A,B,C,D,E,F] = calcTanhSegmentCoefficientsUpd(...
+                    x0_,x1_,dydx0_,dydx1_,...
+                    yNegInf_,yInf_,...
+                    xScale_,xPoint_, yPoint_, xAtIntYZero_);
+
+    tanhSeriesCoefficients(i,:) = [A,B,C,D,E,F];
 end
 
-
-%%
-% Create and evaluate the two tendon curves
-%%
-tendonForceLengthCurve = ...
-  createTendonForceLengthCurve2021( eZero, eIso, kIso, ...
-                                    fToe, curvinessTendon, ...
-                                    computeIntegral, ...
-                                    flag_enableNumericallyNonZeroGradients,...
-                                    smallNumericallyNonZeroNumber,...
-                                    smallNumericallyNonZeroSlope,...
-                                    'TendonForceLengthCurve',...
-                                    flag_usingOctave);
-
-x0      = tendonForceLengthCurve.xEnd(1,1);
-x1      = tendonForceLengthCurve.xEnd(1,2);
-y0      = tendonForceLengthCurve.yEnd(1,1);
-y1      = tendonForceLengthCurve.yEnd(1,2);
-dydx0   = tendonForceLengthCurve.dydxEnd(1,1);
-dydx1   = tendonForceLengthCurve.dydxEnd(1,2);
-
-yNegInf = y0;
-yInf    = inf;  
-
-xShift      = -0.00525;
-xScale      = 0.9;
-xAtIntYZero = 0;
-xPoint = 1+eIso;
-yPoint = 1;
-
-[A,B,C,D,E,F] = calcTanhSegmentCoefficientsUpd(...
-                    x0,x1,dydx0,dydx1,...
-                    yNegInf,yInf,...
-                    xScale,xPoint, yPoint, xAtIntYZero);
-
-%[A,B,C,D,E,F] = calcTanhSegmentCoefficients(x0,x1,dydx0,dydx1,...
-%                                            yNegInf,yInf,...
-%                                            xShift,xScale,xAtIntYZero);
-tendonForceLengthTanhCoeffs = [A,B,C,D,E,F];
-
-yNegInf = y0;
-yInf    = [];  
-xShift      = -0.0045;
-xScale      = 0.125;
-xAtIntYZero = 1;
-
-
-
-[A,B,C,D,E,F] = calcTanSegmentCoefficients(x0,x1,dydx0,dydx1,...
-                                           yNegInf,yInf, ...
-                                           xAtIntYZero,xShift,xScale);
-tendonForceLengthTanCoeffs = [A,B,C,D,E,F];
+% yNegInf = y0;
+% yInf    = [];  
+% xShift      = -0.0045;
+% xScale      = 0.125;
+% xAtIntYZero = 1;
+% 
+% [A,B,C,D,E,F] = calcTanSegmentCoefficients(x0,x1,dydx0,dydx1,...
+%                                            yNegInf,yInf, ...
+%                                            xAtIntYZero,xShift,xScale);
+% tendonForceLengthTanCoeffs = [A,B,C,D,E,F];
 
 disp('The passive curves used in Brown, Scott, Loeb 1996 for the force-length');
 disp('curves of the CE and the tendon are similar to the ones used here.');
 disp('They should be referenced.');
-tendonTanhToe = calcTanhSeriesDerivative(x1,tendonForceLengthTanhCoeffs,0);
-errToe = tendonTanhToe;
 
 
-npts = 100;
 
-ltN                     = zeros(npts,3);
+npts=length(ftDomainTest);
+ltN     = ftDomainTest;
+
 tendonBezierSample      = zeros(npts,3);
 tendonTanhSample        = zeros(npts,3);
-tendonTanSample         = zeros(npts,3);
+tendonTanhError         = zeros(npts,3);
+%tendonTanSample         = zeros(npts,3);
 
-
-lNStart = x0-(x1-x0)*0.5;
-lNEnd   = calcBezierFcnXGivenY(1,tendonForceLengthCurve,x1);
-lNDelta = (lNEnd-lNStart)/(npts-1);
-ltN     = [lNStart:lNDelta:lNEnd]';
 
 %%
 %Plot the tendon curves
@@ -107,14 +142,18 @@ ltN     = [lNStart:lNDelta:lNEnd]';
 
 for i=1:1:3
     for j=1:1:npts
+        
         tendonBezierSample(j,i) = calcBezierYFcnXDerivative(ltN(j,1),...
                                               tendonForceLengthCurve,i-2);
 
         tendonTanhSample(j,i) = calcTanhSeriesDerivative(ltN(j,1),...
-                                       tendonForceLengthTanhCoeffs,i-2);
+                                       tanhSeriesCoefficients,i-2);
 
-        tendonTanSample(j,i) = calcTanSeriesDerivative(ltN(j,1),...
-                                       tendonForceLengthTanCoeffs,i-2);
+%         tendonTanSample(j,i) = calcTanSeriesDerivative(ltN(j,1),...
+%                                        tendonForceLengthTanCoeffs,i-2);
+
+        tendonTanhError(j,i) = tendonTanhSample(j,i) ...
+                             - tendonBezierSample(j,i); 
 
     end
 
@@ -133,10 +172,24 @@ for i=1:1:3
               'DisplayName','Tanh');
         hold on;
     end
-    if(flag_plotTanCurves==1)
-        plot( ltN,tendonTanSample(:,i),...
-              'Color',tanColor,'LineWidth',1,...
-              'DisplayName','Tan');
+%     if(flag_plotTanCurves==1)
+%         plot( ltN,tendonTanSample(:,i),...
+%               'Color',tanColor,'LineWidth',1,...
+%               'DisplayName','Tan');
+%         hold on;
+%     end
+    if(flag_plotTanhCurves==1 && flag_plotBezierCurves==1)
+        text(ltN(end),...
+             tendonTanhError(end,i),...
+             sprintf('%1.2e: RMSE', sqrt(sum(tendonTanhError(:,i).^2))),...
+             'FontSize',6,...
+             'Color',tanhColor,...
+             'HorizontalAlignment','right',...
+             'VerticalAlignment','bottom');
+
+        plot( ltN,tendonTanhError(:,i),...
+              'Color',tanhErrorColor,'LineWidth',1,...
+              'DisplayName','Tanh');
         hold on;
     end
     box off;

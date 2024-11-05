@@ -1,4 +1,4 @@
-function errVector = calcTanhForceVelocityCurveError(argScaled, argNames, params,...
+function errVector = calcTanhCurveError(argScaled, argNames, params,...
                         bezierCurve, domain, argScaling)
 
 arg = argScaled ./ argScaling;
@@ -45,12 +45,12 @@ npts=100;
 errVec= zeros(npts,1);
 errDerVec= zeros(npts,1);
 
-x0 = domain(1,1);
-x1 = domain(1,2);
-dx = (x1-x0)/(npts-1);
+%x0 = domain(1,1);
+%x1 = domain(1,2);
+%dx = (x1-x0)/(npts-1);
 
-for i=1:1:npts
-    xVal = x0 + dx*(i-1);
+for i=1:1:length(domain)
+    xVal = domain(i,1);
     val = calcBezierYFcnXDerivative(xVal,...
                                    bezierCurve,0);
     tanhVal = calcTanhSeriesDerivative(xVal,...
@@ -68,7 +68,7 @@ errVector = errVec;
 
 flag_debug=0;
 if(flag_debug==1)
-    xVal        = [x0:dx:x1]';    
+    xVal        = [-1:0.01:2]';    
     yVal        = zeros(size(xVal));
     yValTanh    = zeros(size(xVal));
 

@@ -35,7 +35,7 @@
 %%
 function tendonForceLengthCurve = ...
           createTendonForceLengthCurve2021(...
-            eZero, eIso, kIso, fToe, curviness, computeIntegral, ...            
+            ltsN, eIso, kIso, fToe, curviness, computeIntegral, ...            
             flag_enableNumericallyNonZeroGradients,...
             smallNumericallyNonZeroValue,...
             smallNumericallyNonZeroSlope,...
@@ -135,7 +135,7 @@ assert( (curviness>=0 && curviness <= 1) , ...
 
 %Translate the user parameters to quintic Bezier points
 c = scaleCurviness(curviness);
-x0 = eZero;
+x0 = ltsN;
 y0 = 0;
 dydx0 = 0;
 if(flag_enableNumericallyNonZeroGradients == 1)
@@ -144,7 +144,7 @@ if(flag_enableNumericallyNonZeroGradients == 1)
 end
 
 
-xIso = eZero + eIso;
+xIso = ltsN + eIso;
 yIso = 1;
 dydxIso = kIso;
 
