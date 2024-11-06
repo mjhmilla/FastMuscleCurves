@@ -3,9 +3,10 @@ close all;
 clear all;
 
 flag_plotTendonCurves           = 1;
-flag_plotForceVelocityCurves    = 0;
-flag_plotForceLengthCurves      = 0;
+flag_plotForceVelocityCurves    = 1;
+flag_plotForceLengthCurves      = 1;
 
+flag_writePlotToFile=0;
 
 flag_plotBezierCurves=1;
 flag_plotTanhCurves  =1;
@@ -52,7 +53,7 @@ tanhColor   = [0,0,1];
 tanColor    = [1,0,1];
 expColor    = [0.5,0,0];
 
-numberOfVerticalPlotRows      = 3;
+numberOfVerticalPlotRows      = 4;
 numberOfHorizontalPlotColumns = 3;
 
 plotWidth           = 6;
@@ -109,7 +110,9 @@ forceVelocityMultiplierAtHalfMaximumFiberVelocity       = 0.2;
 forceVelocityMultiplierAtLowEccentricFiberVelocity      = 1.4;
 forceVelocityMultiplierAtMaximumEccentricFiberVelocity  = 1.5;
 
-
+fvCurveParams.fvAtHalfVceCMax = 0.2;
+fvCurveParams.fvAtHalfVceELow = 1.4;
+fvCurveParams.fvAtHalfVceEMax = 1.5;
 
 fiberForceVelocityCurve ...
   = createFiberForceVelocityCurve(...
@@ -127,8 +130,16 @@ fiberForceVelocityCurve ...
 vce0 = fiberForceVelocityCurve.xEnd(1,1);
 vce1 = fiberForceVelocityCurve.xEnd(1,2);
 npts = 101;
+
+% vceA = vce0;
+% vceB = vceA + 0.1;
+% fvCFast = [vceA:((vceB-vceA)/(9)):vceB];
+% fvSlow = [-0.1:((0.2)/(9)):0.1];
+% fvEFast = [0.9:(0.1/(9)):1.0];
+%fvDomainTest = [fvCFast';fvSlow';fvEFast'];
+
 fvDomainTest = [vce0:((vce1-vce0)/(npts-1)):vce1]';
-fvDomainTest = [fvDomainTest;vce1*1.1];
+%fvDomainTest = [fvDomainTest;vce1*1.1];
 
 %
 %Force-length curve
@@ -162,13 +173,14 @@ createFiberForceLengthCurve2021(normLengthZero,...
                             flag_usingOctave);   
 
 lce0 = fiberForceLengthCurve.xEnd(1,1);
-lce1 = fiberForceLengthCurve.xEnd(1,2);
+lce1 = fiberForceLengthCurve.xEnd(1,2) ... 
+     + 0.1*diff(fiberForceLengthCurve.xEnd);
 npts = 101;
 fpeDomainTest = [lce0:((lce1-lce0)/(npts-1)):lce1]';
 fpeDomainTest = [fpeDomainTest;(lce1+(lce1-lce0)*0.1)];
 
-fpeCurveParams.lpeZeroN      = normLengthZero;
-fpeCurveParams.lpeToeN       = normLengthToe;
+fpeCurveParams.lceZeroN      = normLengthZero;
+fpeCurveParams.lceToeN       = normLengthToe;
 fpeCurveParams.fToeN         = fToe;
 fpeCurveParams.kToeN         = kToe;
 
@@ -198,7 +210,7 @@ tendonForceLengthCurve = ...
                                     'TendonForceLengthCurve',...
                                     flag_usingOctave);
 ltN0 = ltsN;
-ltN1 = ltsN+eIso;
+ltN1 = ltsN+eIso*1.1;
 npts = 100;
 ftDomainTest = [ltN0:((ltN1-ltN0)/(npts-1)):ltN1]';
 
@@ -214,11 +226,23 @@ tendonCurveParamsDeGroote.eIso = eIso;
 %%
 if(flag_plotForceVelocityCurves==1)
     plotSettings.indexPlotRow=1;
+
     figCurves = addTanhForceVelocityCurveComparison(...
                     figCurves,...
                     fiberForceVelocityCurve, ...
                     fvDomainTest,...
                     plotSettings);
+
+    figCurves = addDeGrooteFregly2016ForceVelocityCurveComparison(...
+                    figCurves,...
+                    fvCurveParams,...
+                    fiberForceVelocityCurve, ...
+                    fvDomainTest,...
+                    plotSettings); 
+
+
+
+   
 end
 
 if(flag_plotForceLengthCurves==1)
@@ -227,6 +251,13 @@ if(flag_plotForceLengthCurves==1)
                     figCurves,...
                     fpeCurveParams,...
                     fiberForceLengthCurve,...
+                    fpeDomainTest,...
+                    plotSettings);
+
+    figCurves = addDeGrooteFregly2016PassiveForceLengthCurveComparison(...
+                    figCurves,...
+                    fpeCurveParams,...
+                    fiberForceLengthCurve, ...
                     fpeDomainTest,...
                     plotSettings);
 end
@@ -238,8 +269,7 @@ if(flag_plotTendonCurves==1)
                     tendonCurveParams,...
                     tendonForceLengthCurve,...
                     ftDomainTest,...
-                    plotSettings,...
-                    flag_usingOctave);
+                    plotSettings);
     
        
     plotSettings.indexPlotRow=3;
@@ -248,12 +278,23 @@ if(flag_plotTendonCurves==1)
                     tendonCurveParamsDeGroote,...
                     tendonForceLengthCurve,...
                     ftDomainTest,...
-                    plotSettings,...
-                    flag_usingOctave);
+                    plotSettings);
 end
 
-rmpath(parametersDirectoryTreeMTParams);
-rmpath(parametersDirectoryTreeExperiments);
-rmpath(parametersDirectoryTreeModels);
-rmpath(parametersDirectoryTreeCurves);
+set(figCurves,'Units','centimeters',...
+    'PaperUnits','centimeters',...
+    'PaperSize',[pageWidth pageHeight],...
+    'PaperPositionMode','manual',...
+    'PaperPosition',[0 0 pageWidth pageHeight]);     
+set(figCurves,'renderer','painters');     
+set(gcf,'InvertHardCopy','off')
+
+if(flag_writePlotToFile==1)
+    print('-dpdf', [pubOutputFolder,'fig_HyperbolicMuscleCurves.pdf']);
+end
+
+% rmpath(parametersDirectoryTreeMTParams);
+% rmpath(parametersDirectoryTreeExperiments);
+% rmpath(parametersDirectoryTreeModels);
+% rmpath(parametersDirectoryTreeCurves);
 

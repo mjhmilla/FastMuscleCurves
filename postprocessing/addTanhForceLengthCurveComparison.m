@@ -2,8 +2,7 @@ function figH = addTanhForceLengthCurveComparison(figH,...
                     curveParams, ...
                     fiberForceLengthCurve, ...
                     fpeDomainTest,...
-                    plotSettings,...
-                    flag_usingOctave)
+                    plotSettings)
 
 subPlotPanel            = plotSettings.subPlotPanel;
 indexPlotRow            = plotSettings.indexPlotRow;
@@ -23,14 +22,14 @@ tanColor                = plotSettings.tanColor;
 
 
 
-tanhSeriesParams(1).x0             = curveParams.lpeZeroN;
-tanhSeriesParams(1).x1             = curveParams.lpeToeN;
+tanhSeriesParams(1).x0             = curveParams.lceZeroN;
+tanhSeriesParams(1).x1             = curveParams.lceToeN;
 tanhSeriesParams(1).dydx0          = 0;
 tanhSeriesParams(1).dydx1          = curveParams.kToeN;
 tanhSeriesParams(1).yNegInf        = 0;
 tanhSeriesParams(1).yInf           = inf;
 tanhSeriesParams(1).xScale         = 0.9;
-tanhSeriesParams(1).xPoint         = curveParams.lpeToeN;
+tanhSeriesParams(1).xPoint         = curveParams.lceToeN;
 tanhSeriesParams(1).yPoint         = curveParams.fToeN;
 tanhSeriesParams(1).xAtIntYZero    = 0;
 
@@ -55,20 +54,21 @@ args        = [tanhSeriesParams(1).x0;...
                tanhSeriesParams(1).x1;...
                tanhSeriesParams(1).xScale];
 
-argScaling  = 1000;
-argsScaled  = args .* argScaling;
+argsScaling  = args;
+argsScaled  = ones(size(args));
 
 errFcn = @(argInput)calcTanhCurveError(argInput,...
                  optParams,tanhSeriesParams,...
                  fiberForceLengthCurve,...
                  fpeDomainTest,...
-                 argScaling);
+                 argsScaling);
 
 errVec0 = errFcn(argsScaled);
 
 [argScaledUpd,resnorm,residual,exitflag,output]=...
     lsqnonlin(errFcn,argsScaled);
-argUpd = argScaledUpd./argScaling;
+
+argUpd = argScaledUpd.*argsScaling;
 
 errVec1 = errFcn(argScaledUpd);
 

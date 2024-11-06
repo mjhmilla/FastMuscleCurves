@@ -30,7 +30,7 @@ yNegInf = 0;
 yInf    = inf;  
 dyPoint = 0.01;
 
-tanhSeriesParams(1).x0          = -1.5;
+tanhSeriesParams(1).x0          = -2.5;
 tanhSeriesParams(1).x1          = 0;
 tanhSeriesParams(1).dydx0       = 0;
 tanhSeriesParams(1).dydx1       = calcBezierYFcnXDerivative(...
@@ -93,8 +93,8 @@ args        = [args; ...
               tanhSeriesParams(2).x1; ...
               tanhSeriesParams(2).dydx1; ...
               tanhSeriesParams(2).xScale];
-argScaling  = 1000;
-argsScaled  = args .* argScaling;
+argsScaling = args;
+argsScaled  = ones(size(args));
 
 
 [A,B,C,D,E,F] = calcTanhSegmentCoefficientsUpd( ...
@@ -133,24 +133,42 @@ optDomain = [concDomain; ...
              eccDomainSlow; ...
              eccDomainFast];
 
+
 errVec0 = calcTanhCurveError(argsScaled, optParams,...
             tanhSeriesParams,fiberForceVelocityCurve, ...
-            optDomain,argScaling);
+            optDomain,argsScaling);
 
-errFcn = @(argInput)calcTanhCurveError(argInput,...
-                 optParams,tanhSeriesParams,fiberForceVelocityCurve,...
-                 optDomain,argScaling);
+
 
 if(flag_fitfvCurve==1)
 
+    errFcn = @(argInput)calcTanhCurveError(argInput,...
+                 optParams,tanhSeriesParams,fiberForceVelocityCurve,...
+                 optDomain,argsScaling);
+
     [argScaledUpd,resnorm,residual,exitflag,output]=...
         lsqnonlin(errFcn,argsScaled);
-    
+
+    argUpd = argScaledUpd.*argsScaling;
+%     argsScaling = argUpd;
+%     argUpd = ones(size(argUpd));
+% 
+%     errFcn = @(argInput)calcTanhCurveError(argInput,...
+%                  optParams,tanhSeriesParams,fiberForceVelocityCurve,...
+%                  optDomain,argsScaling);
+% 
+%     [argScaledUpd,resnorm,residual,exitflag,output]=...
+%         lsqnonlin(errFcn,argUpd);
+%     
+%     argUpd = argScaledUpd.*argsScaling;
+
     errVec1 = calcTanhCurveError(argScaledUpd, optParams,...
                 tanhSeriesParams,fiberForceVelocityCurve,...
-                optDomain,argScaling);
+                optDomain,argsScaling);
     
-    argUpd = argScaledUpd./argScaling;
+
+
+
 
     fprintf('%1.2e\tStarting Error\n%1.2e\tEnding Error\n',...
              sqrt(sum(errVec0.^2)),sqrt(sum(errVec1.^2)));  
@@ -209,6 +227,10 @@ for i=2:1:3
 
         fvTanhSample(j,i) = calcTanhSeriesDerivative(vceN(j,1),...
                                        forceVelocityTanhCoeffs,i-2);
+
+%         if(i==2)
+%             fvTanhSample(j,i)=fvTanhSample(j,i) + 0.1 + 0.1*tanh( (vceN(j,1)-0.03)/0.01 );
+%         end
 
         fvErrorSample(j,i)=fvTanhSample(j,i)-fvBezierSample(j,i);        
 

@@ -1,7 +1,7 @@
 function errVector = calcTanhCurveError(argScaled, argNames, params,...
                         bezierCurve, domain, argScaling)
 
-arg = argScaled ./ argScaling;
+arg = argScaled .* argScaling;
 abcdefParams=zeros(length(params),6);
 
 localParams = params;
