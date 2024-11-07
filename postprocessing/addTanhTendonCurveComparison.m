@@ -10,6 +10,7 @@ flag_plotBezierCurves   = plotSettings.flag_plotBezierCurves;
 flag_plotTanhCurves     = plotSettings.flag_plotTanhCurves;
 flag_plotTanCurves      = plotSettings.flag_plotTanCurves;
 bezierColor             = plotSettings.bezierColor;
+bezierWidth             = plotSettings.bezierWidth;
 tanhColor               = plotSettings.tanhColor;
 tanhErrorColor          = plotSettings.tanhErrorColor;
 tanColor                = plotSettings.tanColor;
@@ -160,9 +161,15 @@ for i=1:1:3
     subplot('Position',reshape(subPlotPanel(indexPlotRow,i,:),1,4));
 
     if(flag_plotBezierCurves==1)
-        plot( ltN,tendonBezierSample(:,i),...
-              'Color',bezierColor,'LineWidth',1,...
-              'DisplayName','Bezier');
+%         plot( ltN,tendonBezierSample(:,i),...
+%               'Color',bezierColor,'LineWidth',bezierWidth,...
+%               'DisplayName','Bezier');
+%         hold on;
+        fill([ltN(1,1);ltN(end,1);fliplr(ltN')'],...
+             [0;0;fliplr(tendonBezierSample(:,i)')'],...
+             bezierColor,...
+             'EdgeColor','none',...
+             'DisplayName','Bezier');
         hold on;
     end
     if(flag_plotTanhCurves==1)

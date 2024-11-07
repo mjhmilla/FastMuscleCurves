@@ -2,11 +2,12 @@ clc;
 close all;
 clear all;
 
-flag_plotTendonCurves           = 1;
-flag_plotForceVelocityCurves    = 1;
+flag_plotActiveForceLengthCurves= 1;
 flag_plotForceLengthCurves      = 1;
+flag_plotForceVelocityCurves    = 1;
+flag_plotTendonCurves           = 1;
 
-flag_writePlotToFile=0;
+flag_writePlotToFile=1;
 
 flag_plotBezierCurves=1;
 flag_plotTanhCurves  =1;
@@ -48,7 +49,7 @@ addpath(parametersDirectoryTreeCurves);
 %%
 
 figCurves = figure;
-bezierColor = [0,0,0];
+bezierColor = [1,1,1].*0.85;
 tanhColor   = [0,0,1];
 tanColor    = [1,0,1];
 expColor    = [0.5,0,0];
@@ -87,6 +88,7 @@ plotSettings.flag_plotBezierCurves=flag_plotBezierCurves;
 plotSettings.flag_plotTanhCurves=flag_plotTanhCurves;
 plotSettings.flag_plotTanCurves=flag_plotTanCurves;
 plotSettings.bezierColor=bezierColor;
+plotSettings.bezierWidth=2;
 plotSettings.tanhColor=tanhColor;
 plotSettings.tanColor=tanColor;
 plotSettings.tanhErrorColor=tanhColor.*0.5 + [1,1,1].*0.5;
@@ -99,6 +101,7 @@ plotSettings.expErrorColor = expColor.*0.5 + [1,1,1].*0.5;
 flag_enableNumericallyNonZeroGradients  = 0;
 smallNumericallyNonZeroNumber           = sqrt(sqrt(eps));
 smallNumericallyNonZeroSlope            = sqrt(eps);
+npts                                    = 101;
 
 %
 % Force velocity curve
@@ -129,7 +132,7 @@ fiberForceVelocityCurve ...
 
 vce0 = fiberForceVelocityCurve.xEnd(1,1);
 vce1 = fiberForceVelocityCurve.xEnd(1,2);
-npts = 101;
+
 
 % vceA = vce0;
 % vceB = vceA + 0.1;
@@ -150,7 +153,7 @@ normLengthToe  = 1+0.6;
 fToe  = 1;
 yZero = 0;
 kZero = 0;
-if(flag_enableNumericallyNonZeroGradients)
+if(flag_enableNumericallyNonZeroGradients==1)
     yZero   = smallNumericallyNonZeroNumber;
     kZero   = smallNumericallyNonZeroSlope; 
 end         
@@ -175,7 +178,7 @@ createFiberForceLengthCurve2021(normLengthZero,...
 lce0 = fiberForceLengthCurve.xEnd(1,1);
 lce1 = fiberForceLengthCurve.xEnd(1,2) ... 
      + 0.1*diff(fiberForceLengthCurve.xEnd);
-npts = 101;
+
 fpeDomainTest = [lce0:((lce1-lce0)/(npts-1)):lce1]';
 fpeDomainTest = [fpeDomainTest;(lce1+(lce1-lce0)*0.1)];
 
@@ -184,6 +187,55 @@ fpeCurveParams.lceToeN       = normLengthToe;
 fpeCurveParams.fToeN         = fToe;
 fpeCurveParams.kToeN         = kToe;
 
+%
+%Active force length curve
+%
+assert(abs(fToe-1)<sqrt(eps));
+normFiberLengthAtOneNormPassiveForce = normLengthToe;
+normPevkToActinAttachmentPoint       = 0.5;
+normMaxActiveTitinToActinDamping     = 65;
+ecmForceFraction                     = 0.56;
+
+[sarcomereProperties] =...
+  getMammalianSkeletalMuscleNormalizedSarcomereProperties(...
+    'human',...
+    normFiberLengthAtOneNormPassiveForce,...
+    normPevkToActinAttachmentPoint,...
+    normMaxActiveTitinToActinDamping,...
+    ecmForceFraction,...
+    []);
+
+curvinessActiveForceLength                       = 1.0;
+shiftLengthActiveForceLengthCurveDescendingCurve = 0;
+flag_useOctave = 0;
+
+flag_compensateForCrossbridgeStiffness = 0;
+[activeForceLengthCurve, ...
+  activeForceLengthCurveAnnotationPoints] ...
+    = createFiberActiveForceLengthCurve(...
+          sarcomereProperties.normMyosinHalfLength*2,...
+          sarcomereProperties.normMyosinBareHalfLength*2,...
+          sarcomereProperties.normActinLength,...
+          sarcomereProperties.normZLineLength,...
+          sarcomereProperties.normSarcomereLengthZeroForce,...
+          sarcomereProperties.normCrossBridgeStiffness,...          
+          curvinessActiveForceLength, ...           
+          shiftLengthActiveForceLengthCurveDescendingCurve,...
+          flag_compensateForCrossbridgeStiffness,...          
+          flag_enableNumericallyNonZeroGradients,...
+          smallNumericallyNonZeroValue,...
+          smallNumericallyNonZeroSlope,...
+          'activeForceLength',...
+          flag_useOctave);  
+
+falCurveParams.scale = 1;
+falCurveParams.x = activeForceLengthCurveAnnotationPoints.x(:,1);
+falCurveParams.y = activeForceLengthCurveAnnotationPoints.y(:,1);
+
+lceNMin = activeForceLengthCurve.xEnd(1,1) - 0.1;
+lceNMax = activeForceLengthCurve.xEnd(1,2) + 0.1;
+
+falDomainTest = [lceNMin:((lceNMax-lceNMin)/(npts-1)):lceNMax]';
 
 %
 % Tendon-force-length curve
@@ -224,8 +276,28 @@ tendonCurveParamsDeGroote.eIso = eIso;
 %%
 % Tanh curves
 %%
-if(flag_plotForceVelocityCurves==1)
+if(flag_plotActiveForceLengthCurves==1)
     plotSettings.indexPlotRow=1;
+
+    figCurves = addTanhActiveForceLengthCurveComparison(...
+                    figCurves,...
+                    falCurveParams,...
+                    activeForceLengthCurve, ...
+                    falDomainTest,...
+                    plotSettings);
+
+    plotSettings.flag_plotBezierCurves=0;
+    figCurves = addDeGrooteFregly2016ActiveForceLengthCurveComparison(...
+                    figCurves,...
+                    falCurveParams,...
+                    activeForceLengthCurve, ...
+                    falDomainTest,...
+                    plotSettings); 
+    plotSettings.flag_plotBezierCurves=1;    
+end
+
+if(flag_plotForceVelocityCurves==1)
+    plotSettings.indexPlotRow=2;
 
     figCurves = addTanhForceVelocityCurveComparison(...
                     figCurves,...
@@ -233,20 +305,18 @@ if(flag_plotForceVelocityCurves==1)
                     fvDomainTest,...
                     plotSettings);
 
+    plotSettings.flag_plotBezierCurves=0;
     figCurves = addDeGrooteFregly2016ForceVelocityCurveComparison(...
                     figCurves,...
                     fvCurveParams,...
                     fiberForceVelocityCurve, ...
                     fvDomainTest,...
                     plotSettings); 
-
-
-
-   
+    plotSettings.flag_plotBezierCurves=1;
 end
 
 if(flag_plotForceLengthCurves==1)
-    plotSettings.indexPlotRow=2;
+    plotSettings.indexPlotRow=3;
     figCurves = addTanhForceLengthCurveComparison(...
                     figCurves,...
                     fpeCurveParams,...
@@ -254,16 +324,18 @@ if(flag_plotForceLengthCurves==1)
                     fpeDomainTest,...
                     plotSettings);
 
+    plotSettings.flag_plotBezierCurves=0;
     figCurves = addDeGrooteFregly2016PassiveForceLengthCurveComparison(...
                     figCurves,...
                     fpeCurveParams,...
                     fiberForceLengthCurve, ...
                     fpeDomainTest,...
                     plotSettings);
+    plotSettings.flag_plotBezierCurves=1;
 end
 
 if(flag_plotTendonCurves==1)
-    plotSettings.indexPlotRow=3;
+    plotSettings.indexPlotRow=4;
     figCurves = addTanhTendonCurveComparison(...
                     figCurves,...
                     tendonCurveParams,...
@@ -271,14 +343,14 @@ if(flag_plotTendonCurves==1)
                     ftDomainTest,...
                     plotSettings);
     
-       
-    plotSettings.indexPlotRow=3;
+    plotSettings.flag_plotBezierCurves=0;
     figCurves = addDeGrooteFregly2016TendonCurveComparison(...
                     figCurves,...
                     tendonCurveParamsDeGroote,...
                     tendonForceLengthCurve,...
                     ftDomainTest,...
                     plotSettings);
+    plotSettings.flag_plotBezierCurves=1;
 end
 
 set(figCurves,'Units','centimeters',...

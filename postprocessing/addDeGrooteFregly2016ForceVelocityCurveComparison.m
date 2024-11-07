@@ -12,6 +12,7 @@ flag_plotBezierCurves   = plotSettings.flag_plotBezierCurves;
 flag_plotTanhCurves     = plotSettings.flag_plotTanhCurves;
 flag_plotTanCurves      = plotSettings.flag_plotTanCurves;
 bezierColor             = plotSettings.bezierColor;
+bezierWidth             = plotSettings.bezierWidth;
 tanhColor               = plotSettings.tanhColor;
 tanhErrorColor          = plotSettings.tanhErrorColor;
 expColor                = plotSettings.expColor;
@@ -47,10 +48,17 @@ end
 figure(figH);
 subplot('Position',reshape(subPlotPanel(indexPlotRow,2,:),1,4));
 
-plot( vceN,fvBezierSample(:,1),...
-      'Color',bezierColor,'LineWidth',1,...
-      'DisplayName','Bezier');
-hold on;
+if(flag_plotBezierCurves==1)
+%     plot( vceN,fvBezierSample(:,1),...
+%           'Color',bezierColor,'LineWidth',bezierWidth,...
+%           'DisplayName','Bezier');
+%     hold on;
+        fill([vceN(1,1);vceN(end,1);fliplr(vceN')'],...
+             [0;0;fliplr(fvBezierSample(:,1)')'],...
+             bezierColor,...
+             'EdgeColor','none', 'DisplayName','Bezier');
+        hold on;
+end
 
 plot( vceN,fvN(:,1),...
       'Color',expColor,'LineWidth',1,...
@@ -77,5 +85,5 @@ plot( vceN,fvErrorSample(:,1),...
 hold on;
 
 
-
+box off;
 

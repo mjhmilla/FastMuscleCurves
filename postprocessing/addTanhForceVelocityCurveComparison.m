@@ -11,6 +11,7 @@ flag_plotBezierCurves   = plotSettings.flag_plotBezierCurves;
 flag_plotTanhCurves     = plotSettings.flag_plotTanhCurves;
 flag_plotTanCurves      = plotSettings.flag_plotTanCurves;
 bezierColor             = plotSettings.bezierColor;
+bezierWidth             = plotSettings.bezierWidth;
 tanhColor               = plotSettings.tanhColor;
 tanhErrorColor          = plotSettings.tanhErrorColor;
 tanColor                = plotSettings.tanColor;
@@ -30,7 +31,7 @@ yNegInf = 0;
 yInf    = inf;  
 dyPoint = 0.01;
 
-tanhSeriesParams(1).x0          = -2.5;
+tanhSeriesParams(1).x0          = -1.2;
 tanhSeriesParams(1).x1          = 0;
 tanhSeriesParams(1).dydx0       = 0;
 tanhSeriesParams(1).dydx1       = calcBezierYFcnXDerivative(...
@@ -38,14 +39,13 @@ tanhSeriesParams(1).dydx1       = calcBezierYFcnXDerivative(...
                                     fiberForceVelocityCurve,1)*1.1;
 tanhSeriesParams(1).yNegInf     = yNegInf;
 tanhSeriesParams(1).yInf        = yInf;
-tanhSeriesParams(1).xScale      = 1.0;
+tanhSeriesParams(1).xScale      = 1.4204;
 tanhSeriesParams(1).xPoint      = 0;
 tanhSeriesParams(1).yPoint      = 1+dyPoint;
 tanhSeriesParams(1).xAtIntYZero = tanhSeriesParams(1).x0;
 
-optParams(1).names = {'x0','dydx1','xScale'};
-args = [tanhSeriesParams(1).x0;...
-        tanhSeriesParams(1).dydx1;...
+optParams(1).names = {'dydx1','xScale'};
+args = [tanhSeriesParams(1).dydx1;...
         tanhSeriesParams(1).xScale];
 
 [A,B,C,D,E,F] = calcTanhSegmentCoefficientsUpd( ...
@@ -75,23 +75,22 @@ end
 
 
 tanhSeriesParams(2).x0          =0;
-tanhSeriesParams(2).x1          =0.5;
+tanhSeriesParams(2).x1          =0.0684;
 tanhSeriesParams(2).dydx0       =0;
 tanhSeriesParams(2).dydx1       = ...
     calcBezierYFcnXDerivative(1,fiberForceVelocityCurve,1) ...
    -calcTanhSeriesDerivative(1e6,forceVelocityTanhCoeffs,1);
 tanhSeriesParams(2).yNegInf     =yNegInf;
 tanhSeriesParams(2).yInf        =sign(tanhSeriesParams(2).dydx1)*yInf;
-tanhSeriesParams(2).xScale      =1;
+tanhSeriesParams(2).xScale      =6.9575;
 tanhSeriesParams(2).xPoint      =0;
 tanhSeriesParams(2).yPoint      =-dyPoint;
 tanhSeriesParams(2).xAtIntYZero =0;
 
-optParams(2).names = {'x1','dydx1','xScale'};
+optParams(2).names = {'x1','xScale'};
 
 args        = [args; ...
               tanhSeriesParams(2).x1; ...
-              tanhSeriesParams(2).dydx1; ...
               tanhSeriesParams(2).xScale];
 argsScaling = args;
 argsScaled  = ones(size(args));
@@ -251,10 +250,15 @@ for i=2:1:3
     subplot('Position',reshape(subPlotPanel(indexPlotRow ,i,:),1,4));
 
     if(flag_plotBezierCurves==1)
-        plot( vceN,fvBezierSample(:,i),...
-              'Color',bezierColor,'LineWidth',1,...
-              'DisplayName','Bezier');
+        fill([vceN(1,1);vceN(end,1);fliplr(vceN')'],...
+             [0;0;fliplr(fvBezierSample(:,i)')'],...
+             bezierColor,...
+             'EdgeColor','none','DisplayName','Bezier');
         hold on;
+%         plot( vceN,fvBezierSample(:,i),...
+%               'Color',bezierColor,'LineWidth',bezierWidth,...
+%               'DisplayName','Bezier');
+%         hold on;
     end
     if(flag_plotTanhCurves==1)
         plot( vceN,fvTanhSample(:,i),...
