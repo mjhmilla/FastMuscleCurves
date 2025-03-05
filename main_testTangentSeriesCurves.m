@@ -273,6 +273,44 @@ tendonCurveParams.kToeN   = tendonForceLengthCurve.dydxEnd(1,2);
 tendonCurveParams.ltIsoN  = eIso+1;
 
 tendonCurveParamsDeGroote.eIso = eIso;
+
+%%
+% Tanh spline curve
+%%
+flag_useTanhSpline=1;
+
+if(flag_useTanhSpline==1)
+    xk = [activeForceLengthCurve.xpts(1,1:(end))';...
+          activeForceLengthCurve.xpts(end,end)];
+    yk      = zeros(size(xk));
+    dydxk   = zeros(size(xk));
+    for i=1:1:length(xk)
+        yk(i,1)=calcBezierYFcnXDerivative(xk(i,1),activeForceLengthCurve,0);
+        dydxk(i,1)=calcBezierYFcnXDerivative(xk(i,1),activeForceLengthCurve,1);
+    end
+    dydxk(1,1)=activeForceLengthCurve.dydxEnd(1,1);
+    dydxk(end,1)=activeForceLengthCurve.dydxEnd(1,2);
+    yLim = [0,0];
+    
+    nSample=100;
+    x0 = activeForceLengthCurve.xEnd(1,1);
+    x1 = activeForceLengthCurve.xEnd(1,2);
+    xSample = [x0:((x1-x0)/(nSample-1)):x1]';
+    ySample=zeros(size(xSample));
+    for i=1:1:length(xSample)
+        ySample(i,1) = calcBezierYFcnXDerivative(xSample(i,1),activeForceLengthCurve,0);
+    end
+    xAtIntYZero = 0;
+    
+    falTanhSplineCoeffs = ...
+        fitTanhSplineCoefficients(xk,yk,dydxk,yLim,xAtIntYZero,xSample,ySample);
+    
+    falTanhSample = zeros(size(ySample));
+    for i=1:1:length(xSample)
+        falTanhSample(i,1)= ...
+            calcTanhSeriesDerivative(xSample(i,1),falTanhSplineCoeffs,0);
+    end
+end
 %%
 % Tanh curves
 %%
@@ -285,6 +323,15 @@ if(flag_plotActiveForceLengthCurves==1)
                     activeForceLengthCurve, ...
                     falDomainTest,...
                     plotSettings);
+
+    if(flag_useTanhSpline==1)
+        subplot('Position',...
+            reshape(plotSettings.subPlotPanel(...
+                plotSettings.indexPlotRow,2,:),1,4));
+    
+        plot(xSample,falTanhSample,'--m');
+        hold on;
+    end
 
     plotSettings.flag_plotBezierCurves=0;
     figCurves = addDeGrooteFregly2016ActiveForceLengthCurveComparison(...
