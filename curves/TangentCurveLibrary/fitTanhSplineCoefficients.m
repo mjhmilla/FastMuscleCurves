@@ -1,5 +1,7 @@
 function tanhCoeffs = ...
-    fitTanhSplineCoefficients(xk,yk,dydxk,yLimits,xAtIntYZero,xSample,ySample)
+    fitTanhSplineCoefficients(xk,yk,dydxk,smoothness,...
+    yLimits,xAtIntYZero,flag_polishKnotPoints,...
+    indicesOfValueKnotsToPolish,indicesOfDerivativeKnotsToPolish)
 
 assert(size(xk,2)==1,'Error: xk, yk, dydxk must be n x 1');
 assert(length(xk)==length(yk) && length(xk)==length(dydxk),...
@@ -9,17 +11,23 @@ assert(size(yLimits,1)==1 && size(yLimits,2)==2,'Error:' )
 n = length(xk)-1;
 
 
-xS = ones(size(xk))*1;
+xS = ones(size(xk))*smoothness;
 dy = diff(yk).*0.05;
 
 tanhCoeffs = zeros(n, 6);
 
+%
+% Construct the curve that will be close to passing through
+% the knot points: xk,yk,dydxk
+%
 
+curveInputs(n) = struct('x0',0,'x1',0,'dydx0',0,'dydx1',0,...
+                       'yNegInf',0,'yInf',0,'xScale',0,...
+                       'xPoint',0,'yPoint',0,'xAtIntYZero',0);
 
 for i=2:1:length(xk)
 
     j = i-1; %Segment counter
-
 
     x0 = xk(i-1,1);
     x1 = xk(i,1);
@@ -82,10 +90,20 @@ for i=2:1:length(xk)
         yPoint = y1 - calcTanhSeriesDerivative(xPoint,tanhCoeffs(1:(j-1),:),0);
     end
 
-    disp(j);
-    fprintf('%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\n',...
-        x0,x1,dydxT0,dydxT1,yNegInf,yInf,xScale,xPoint,yPoint);
+    %disp(j);
+    %fprintf('%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\n',...
+    %    x0,x1,dydxT0,dydxT1,yNegInf,yInf,xScale,xPoint,yPoint);
 
+    curveInputs(j).x0 = x0T;
+    curveInputs(j).x1 = x1T;
+    curveInputs(j).dydx0 = dydxT0;
+    curveInputs(j).dydx1 = dydxT1;
+    curveInputs(j).yNegInf= yNegInf;
+    curveInputs(j).yInf = yInf;
+    curveInputs(j).xScale = xScale;
+    curveInputs(j).xPoint = xPoint;
+    curveInputs(j).yPoint = yPoint;
+    curveInputs(j).xAtIntYZero = xAtIntYZero;
     
     [A,B,C,D,E,F] = calcTanhSegmentCoefficientsUpd( ...
                         x0T,     ...
@@ -139,6 +157,155 @@ for i=2:1:length(xk)
     end
 end
 
+%
+% Polish up the knot points by making small adjustments to
+%
+%  B parameters to pass through (xk,yk)
+%  D parameters to pass through xk, dydxk
+%
+
+if(flag_polishKnotPoints==1)
+    tanhCoeffsUpd = tanhCoeffs;
+
+    % Approach
+    %   Directly adjust B to fit yk, and A to fit dydxk
+    arg = [tanhCoeffsUpd(:,1);tanhCoeffsUpd(:,3)];
+
+    err = inf;
+    iter =1;
+    
+    tol = eps*10*length(arg);
+    iterMax=200;
+    errStart=0;
+
+
+    stepLength=0.5;
+    stepLengthMin = 0.01;
+    stepLengthMax = 1;
+
+    errBest=inf;
+    tanhCoeffsBest=tanhCoeffs;
+    argBest=arg;
+    dargBest = ones(size(arg));
+    darg = ones(size(arg)).*inf;
+
+    xkVTarget = xk(indicesOfValueKnotsToPolish,1);
+    ykVTarget = yk(indicesOfValueKnotsToPolish,1);
+
+    xkDTarget = xk(indicesOfDerivativeKnotsToPolish,1);
+    dydxkDTarget = dydxk(indicesOfDerivativeKnotsToPolish,1);
+
+    nV =length(xkVTarget);
+    nD = length(xkDTarget);
+    m =length(tanhCoeffsUpd(:,2));
+
+    errVM=inf;
+
+    while(errVM > tol && iter < iterMax)
+    
+        %Update the tanh spline coefficients
+        for i=1:1:m
+            indexParams = [1;3];
+            valueParams = [arg(i,1);arg(i+m,1)];
+    
+            [A,B,C,D,E,F] = calcTanhSegmentCoefficientsGivenParameters(...
+                curveInputs(i).x0,...
+                curveInputs(i).x1,...
+                curveInputs(i).dydx0,...
+                curveInputs(i).dydx1,...
+                curveInputs(i).yNegInf,...
+                curveInputs(i).yInf, ...
+                curveInputs(i).xScale,...
+                curveInputs(i).xPoint, ...
+                curveInputs(i).yPoint,...
+                curveInputs(i).xAtIntYZero,...
+                indexParams, ...
+                valueParams);
+            tanhCoeffsUpd(i,:) = [A,B,C,D,E,F];
+        end
+
+    
+        ykC = zeros(size(xkVTarget));
+        dydxkC = zeros(size(xkDTarget));
+        
+        for i=1:1:length(xkVTarget)
+            ykC(i,1)   = calcTanhSeriesDerivative(xkVTarget(i,1),tanhCoeffsUpd,0);
+        end
+        for i=1:1:length(xkDTarget)
+            dydxkC(i,1)= calcTanhSeriesDerivative(xkVTarget(i,1),tanhCoeffsUpd,1); 
+        end    
+           
+        jacM = zeros(length(xkVTarget)+length(dydxkDTarget),length(arg));
+        for i=1:1:length(xkVTarget)
+            for j=1:1:m
+
+                jacM(i,j) = calcTanhSeriesParameterDerivative(...
+                                xkVTarget(i,1),tanhCoeffsUpd(j,:),0,1);
+
+                jacM(i,m+j) = calcTanhSeriesParameterDerivative(...
+                                xkVTarget(i,1),tanhCoeffsUpd(j,:),0,3);
+               
+            end
+        end
+        for i=1:1:length(dydxkDTarget)
+            for j=1:1:m
+
+                jacM(i+nV,j) = calcTanhSeriesParameterDerivative(...
+                                xkDTarget(i,1),tanhCoeffsUpd(j,:),1,1);
+                jacM(i+nV,m+j) = calcTanhSeriesParameterDerivative(...
+                                xkDTarget(i,1),tanhCoeffsUpd(j,:),1,3);
+
+            end
+        end
+
+
+        errV = [ykC;dydxkC] - [ykVTarget;dydxkDTarget];
+        errVM = norm(errV);
+
+
+        if(iter==1)
+            errStart=errVM;
+        end
+
+        if(errVM < errBest)
+            errBest=errVM;
+            tanhCoeffsBest=tanhCoeffsUpd;
+            argBest=arg;
+            dargBest=darg;
+        end
+
+            jacMInv = pinv(jacM'*jacM,1e-6);
+            darg = -jacMInv*(jacM'*errV);
+            arg = arg + darg*stepLength;
+
+        %    stepLength=stepLength*1.2;
+        %    stepLength=min(stepLength,stepLengthMax);
+        %else
+        %    stepLength=stepLength*0.5;
+        %    stepLength = max(stepLength,stepLengthMin);
+        %    arg= argBest + dargBest*stepLength;
+
+        %end
+
+        % f(q)+J(q)dq - f =0
+        % J(q)dq = (f-f(q)
+        % dq = (J(q)'*J(q)) \ (J(q)'*(f-f(q)))
+        
+        fprintf('%d\t%1.3e\t%1.3e\n',iter, errVM, stepLength);
+
+
+
+        iter=iter+1;
+    end
+
+    if(errBest > errStart)
+        tanhCoeffsBest=tanhCoeffs;
+    else
+        tanhCoeffs=tanhCoeffsBest;
+    end
+
+    here=1;
+end
 
 
 

@@ -3,9 +3,9 @@ close all;
 clear all;
 
 flag_plotActiveForceLengthCurves= 1;
-flag_plotForceLengthCurves      = 1;
-flag_plotForceVelocityCurves    = 1;
-flag_plotTendonCurves           = 1;
+flag_plotForceLengthCurves      = 0;
+flag_plotForceVelocityCurves    = 0;
+flag_plotTendonCurves           = 0;
 
 flag_writePlotToFile=1;
 
@@ -280,6 +280,9 @@ tendonCurveParamsDeGroote.eIso = eIso;
 flag_useTanhSpline=1;
 
 if(flag_useTanhSpline==1)
+
+
+
     xk = [activeForceLengthCurve.xpts(1,1:(end))';...
           activeForceLengthCurve.xpts(end,end)];
     yk      = zeros(size(xk));
@@ -296,19 +299,55 @@ if(flag_useTanhSpline==1)
     x0 = activeForceLengthCurve.xEnd(1,1);
     x1 = activeForceLengthCurve.xEnd(1,2);
     xSample = [x0:((x1-x0)/(nSample-1)):x1]';
+    xSample = sort([xSample;1]);
     ySample=zeros(size(xSample));
     for i=1:1:length(xSample)
         ySample(i,1) = calcBezierYFcnXDerivative(xSample(i,1),activeForceLengthCurve,0);
     end
     xAtIntYZero = 0;
-    
+    smoothness=1;
+    flag_polishKnotPoints=1;
+    indexOfValueKnotsToPolish = [1,4,6];
+    indexOfDerivativeKnotsToPolish = [1,4,6];
+
     falTanhSplineCoeffs = ...
-        fitTanhSplineCoefficients(xk,yk,dydxk,yLim,xAtIntYZero,xSample,ySample);
+        fitTanhSplineCoefficients(xk,yk,dydxk,smoothness,...
+            yLim,xAtIntYZero,flag_polishKnotPoints,...
+            indexOfValueKnotsToPolish,indexOfDerivativeKnotsToPolish);
     
     falTanhSample = zeros(size(ySample));
     for i=1:1:length(xSample)
         falTanhSample(i,1)= ...
             calcTanhSeriesDerivative(xSample(i,1),falTanhSplineCoeffs,0);
+    end
+
+    flag_testPartialDerivatives=0;
+    if(flag_testPartialDerivatives==1)
+        fprintf(['Checking calcTanhSeriesParameterDerivative',...
+                 ' against numerical derivatives.']);
+        h=sqrt(eps);
+        for derOrder=0:1
+            fprintf('Checking partial derivatives of function derivative %d\n',derOrder);
+            for i=1:1:6
+                x=0.85;
+                coeffs = falTanhSplineCoeffs(2,:);
+                coeffsL = coeffs;
+                coeffsL(1,i)=coeffsL(1,i)-h;
+                coeffsR = coeffs;
+                coeffsR(1,i)=coeffsR(1,i)+h;
+                
+                dP = calcTanhSeriesParameterDerivative(...
+                        x,coeffs,derOrder,i);
+                dPL = calcTanhSeriesDerivative(...
+                        x,coeffsL,derOrder);
+                dPR = calcTanhSeriesDerivative(...
+                        x,coeffsR,derOrder);
+                dPNum = (dPR-dPL)/(2*h);
+    
+                dPErr = abs(dP-dPNum);
+                fprintf('%1d\t%1.3e\n',i,dPErr);
+            end
+        end
     end
 end
 %%
@@ -329,7 +368,9 @@ if(flag_plotActiveForceLengthCurves==1)
             reshape(plotSettings.subPlotPanel(...
                 plotSettings.indexPlotRow,2,:),1,4));
     
-        plot(xSample,falTanhSample,'--m');
+        plot(xSample,falTanhSample,'-m');
+        hold on;
+        plot(xk,yk,'xm');
         hold on;
     end
 
