@@ -37,7 +37,14 @@ switch derivativeOrder
             D = coeffs(i,4);
             E = coeffs(i,5);
             arg = (x-B)/C;
-            logCoshArg = log(1.+exp(-2*arg))-log(2)+arg;
+            argMin = -log(realmax)*0.1;
+            logCoshArg = 0;
+            if(arg <= argMin)
+                logCoshArg = -arg-log(2);
+            else
+                logCoshArg = log(1.+exp(-2*arg))-log(2)+arg;
+            end
+            
     
             y = y + (D*(x-B) + A*C*(logCoshArg) + C + E);
         end

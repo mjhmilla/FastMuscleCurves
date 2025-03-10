@@ -4,7 +4,7 @@ clear all;
 
 flag_plotActiveForceLengthCurves= 1;
 flag_plotForceLengthCurves      = 0;
-flag_plotForceVelocityCurves    = 0;
+flag_plotForceVelocityCurves    = 1;
 flag_plotTendonCurves           = 0;
 
 flag_writePlotToFile=1;
@@ -281,45 +281,56 @@ flag_useTanhSpline=1;
 
 if(flag_useTanhSpline==1)
 
-
-
-    xk = [activeForceLengthCurve.xpts(1,1:(end))';...
+    
+    bezierCurves.activeForceLengthCurve = activeForceLengthCurve;
+    xk = [activeForceLengthCurve.xpts(1,:)';...
           activeForceLengthCurve.xpts(end,end)];
-    yk      = zeros(size(xk));
-    dydxk   = zeros(size(xk));
-    for i=1:1:length(xk)
-        yk(i,1)=calcBezierYFcnXDerivative(xk(i,1),activeForceLengthCurve,0);
-        dydxk(i,1)=calcBezierYFcnXDerivative(xk(i,1),activeForceLengthCurve,1);
-    end
-    dydxk(1,1)=activeForceLengthCurve.dydxEnd(1,1);
-    dydxk(end,1)=activeForceLengthCurve.dydxEnd(1,2);
-    yLim = [0,0];
-    
-    nSample=100;
-    x0 = activeForceLengthCurve.xEnd(1,1);
-    x1 = activeForceLengthCurve.xEnd(1,2);
-    xSample = [x0:((x1-x0)/(nSample-1)):x1]';
-    xSample = sort([xSample;1]);
-    ySample=zeros(size(xSample));
-    for i=1:1:length(xSample)
-        ySample(i,1) = calcBezierYFcnXDerivative(xSample(i,1),activeForceLengthCurve,0);
-    end
-    xAtIntYZero = 0;
-    smoothness=1;
-    flag_polishKnotPoints=1;
-    indexOfValueKnotsToPolish = [1,4,6];
-    indexOfDerivativeKnotsToPolish = [1,4,6];
+    bezierCurves.activeForceLengthCurve.xk = xk;
+    bezierCurves.activeForceLengthCurve.yLimitsSignOfAcceptableError=[1,1];
+    bezierCurves.activeForceLengthCurve.valuesToPolish=...
+            [-inf,0; 1,1; inf,0];
+    bezierCurves.activeForceLengthCurve.firstDerivativeValuesToPolish=...
+            [-inf,0; 1,0; inf,0];
+    bezierCurves.activeForceLengthCurve.smoothness = 1;
+    bezierCurves.activeForceLengthCurve.xAtIntYZero = 0;
+    bezierCurves.activeForceLengthCurve.numberOfSubdivisions=0;
 
-    falTanhSplineCoeffs = ...
-        fitTanhSplineCoefficients(xk,yk,dydxk,smoothness,...
-            yLim,xAtIntYZero,flag_polishKnotPoints,...
-            indexOfValueKnotsToPolish,indexOfDerivativeKnotsToPolish);
+    bezierCurves.forceVelocityCurve = fiberForceVelocityCurve;
+
+    bezierCurves.forceVelocityCurve.xk = [-0.9;-0.6;-0.3;0;0.2;1];
+
+    y0 = calcBezierYFcnXDerivative(-0.5,fiberForceVelocityCurve,0);
+    y1 = calcBezierYFcnXDerivative(0,fiberForceVelocityCurve,0);
+    y2 = calcBezierYFcnXDerivative(1,fiberForceVelocityCurve,0);
+
+
+    bezierCurves.forceVelocityCurve.valuesToPolish=...
+            [-inf,0;  0,y1; inf,inf];
+
+    dydx0 = calcBezierYFcnXDerivative(-0.5,fiberForceVelocityCurve,1);
+    dydx1 = calcBezierYFcnXDerivative(0,fiberForceVelocityCurve,1);
+    dydx2 = calcBezierYFcnXDerivative(1,fiberForceVelocityCurve,1);
     
-    falTanhSample = zeros(size(ySample));
-    for i=1:1:length(xSample)
-        falTanhSample(i,1)= ...
-            calcTanhSeriesDerivative(xSample(i,1),falTanhSplineCoeffs,0);
-    end
+    bezierCurves.forceVelocityCurve.firstDerivativeValuesToPolish=...
+            [-inf,0; inf,dydx2];
+    bezierCurves.forceVelocityCurve.smoothness = ...
+        ones(length(bezierCurves.forceVelocityCurve.xk)-1,1).*1;
+
+  
+    bezierCurves.forceVelocityCurve.smoothness(end-2,1)=1;
+    bezierCurves.forceVelocityCurve.smoothness(end-1,1)=0.5;
+    bezierCurves.forceVelocityCurve.smoothness(end,1)=0.5;
+
+    bezierCurves.forceVelocityCurve.yLimitsSignOfAcceptableError =[1,1];
+    
+    bezierCurves.forceVelocityCurve.xAtIntYZero = -1;
+    bezierCurves.forceVelocityCurve.numberOfSubdivisions=0;
+
+    verbose=1;
+    minYLimit = sqrt(eps);
+    tanhSeriesCurves = createTanhSeriesCurvesFromBezierCurves(...
+                              bezierCurves,minYLimit,verbose);
+
 
     flag_testPartialDerivatives=0;
     if(flag_testPartialDerivatives==1)
@@ -330,7 +341,7 @@ if(flag_useTanhSpline==1)
             fprintf('Checking partial derivatives of function derivative %d\n',derOrder);
             for i=1:1:6
                 x=0.85;
-                coeffs = falTanhSplineCoeffs(2,:);
+                coeffs = tanhSeriesCurves.activeForceLengthCurve.curveParameters(2,:);
                 coeffsL = coeffs;
                 coeffsL(1,i)=coeffsL(1,i)-h;
                 coeffsR = coeffs;
@@ -368,9 +379,19 @@ if(flag_plotActiveForceLengthCurves==1)
             reshape(plotSettings.subPlotPanel(...
                 plotSettings.indexPlotRow,2,:),1,4));
     
-        plot(xSample,falTanhSample,'-m');
+        plot(tanhSeriesCurves.activeForceLengthCurve.sample.x,...
+             tanhSeriesCurves.activeForceLengthCurve.sample.y,'-m');
         hold on;
-        plot(xk,yk,'xm');
+        plot(tanhSeriesCurves.activeForceLengthCurve.knots.x,...
+             tanhSeriesCurves.activeForceLengthCurve.knots.y,'xm');
+        hold on;
+
+        subplot('Position',...
+            reshape(plotSettings.subPlotPanel(...
+                plotSettings.indexPlotRow,3,:),1,4));
+
+        plot(tanhSeriesCurves.activeForceLengthCurve.sample.x,...
+             tanhSeriesCurves.activeForceLengthCurve.sample.dy,'-m');
         hold on;
     end
 
@@ -392,6 +413,27 @@ if(flag_plotForceVelocityCurves==1)
                     fiberForceVelocityCurve, ...
                     fvDomainTest,...
                     plotSettings);
+
+    if(flag_useTanhSpline==1)
+        subplot('Position',...
+            reshape(plotSettings.subPlotPanel(...
+                plotSettings.indexPlotRow,2,:),1,4));
+    
+        plot(tanhSeriesCurves.forceVelocityCurve.sample.x,...
+             tanhSeriesCurves.forceVelocityCurve.sample.y,'-m');
+        hold on;
+        plot(tanhSeriesCurves.forceVelocityCurve.knots.x,...
+             tanhSeriesCurves.forceVelocityCurve.knots.y,'xm');
+        hold on;
+
+        subplot('Position',...
+            reshape(plotSettings.subPlotPanel(...
+                plotSettings.indexPlotRow,3,:),1,4));
+
+        plot(tanhSeriesCurves.forceVelocityCurve.sample.x,...
+             tanhSeriesCurves.forceVelocityCurve.sample.dy,'-m');
+        hold on;
+    end
 
     plotSettings.flag_plotBezierCurves=0;
     figCurves = addDeGrooteFregly2016ForceVelocityCurveComparison(...

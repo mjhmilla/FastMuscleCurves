@@ -42,7 +42,14 @@ if(functionDerivativeOrder==0)
     %         Dy_DA = C*(logCoshArg)
             
             arg = (x-B)/C;
-            logCoshArg = log(1.+exp(-2*arg))-log(2)+arg;    
+
+            argMin = -log(realmax)*0.1;
+            logCoshArg = 0;
+            if(arg <= argMin)
+                logCoshArg = -arg-log(2);
+            else
+                logCoshArg = log(1.+exp(-2*arg))-log(2)+arg;
+            end            
             %y = y + (D*(x-B) + A*C*(logCoshArg) + C + E);
     
             partialDerivative = C*logCoshArg;
@@ -56,8 +63,18 @@ if(functionDerivativeOrder==0)
     %         DlogCoshArg_DB = 0
     %         Dy_DB = C*(logCoshArg)
               arg = (x-B)/C;
+              argMin = -log(realmax)*0.1;
+
               Darg_DB = -1/C;
-	          DlogCoshArg_DB =( 2*exp(-2*arg) / (C*(exp(-2*arg)+1)) ) +Darg_DB;          
+	          DlogCoshArg_DB =0;               
+
+              if(arg <= argMin)
+                  DlogCoshArg_DB = (2/C) +Darg_DB; 
+              else
+                  DlogCoshArg_DB =( 2*exp(-2*arg) / (C*(exp(-2*arg)+1)) ) +Darg_DB; 
+              end 
+
+	                   
               partialDerivative = -D + A*C*DlogCoshArg_DB;
         case 3
     %         d/dC
@@ -69,9 +86,19 @@ if(functionDerivativeOrder==0)
     %         DlogCoshArg_DC = (-2*exp(-2*arg)*Darg_DC) / (1.+exp(-2*arg)) + Darg_DC
     %         Dy_DC = A*logCoshArg + A*C*DlogCoshArg_DC + 1   
             arg = (x-B)/C;
-            Darg_DC = -(x-B)/(C*C);
-            logCoshArg = log(1.+exp(-2*arg))-log(2)+arg;  
-            DlogCoshArg_DC = (-2*exp(-2*arg)*Darg_DC) / (1.+exp(-2*arg)) + Darg_DC;
+            argMin = -log(realmax)*0.1;
+            logCoshArg = 0;
+            DlogCoshArg_DC = 0;
+            Darg_DC = -(x-B)/(C*C);            
+            if(arg <= argMin)
+                logCoshArg = -arg-log(2);
+                DlogCoshArg_DC = (-2*Darg_DC) + Darg_DC;                
+            else
+                logCoshArg = log(1.+exp(-2*arg))-log(2)+arg;  
+                DlogCoshArg_DC = (-2*exp(-2*arg)*Darg_DC) / (1.+exp(-2*arg)) + Darg_DC;
+            end
+
+
             partialDerivative = A*logCoshArg + A*C*DlogCoshArg_DC + 1;
     
         case 4
@@ -124,13 +151,14 @@ if(functionDerivativeOrder==1)
     %         d/dB
     %         dy = (A*tanh((x-B)/C) + D);
     %         
-            sechArg = 1/cosh((x-B)/C);
+
+            sechArg = sech((x-B)/C);
             partialDerivative = -A*(sechArg*sechArg)/C;
 
         case 3
     %         d/dC
     %         dy = (A*tanh((x-B)/C) + D);              
-            sechArg = 1/cosh((x-B)/C);
+            sechArg = sech((x-B)/C);
             partialDerivative = -A*(x-B)*sechArg*sechArg / (C*C);
     
         case 4

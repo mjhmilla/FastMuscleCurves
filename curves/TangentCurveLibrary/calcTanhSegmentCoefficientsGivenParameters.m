@@ -9,10 +9,10 @@ function [A,B,C,D,E,F] = ...
 %fprintf('%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\n',...
 %    x0,x1,dydx0,dydx1,yNegInf,yInf,xScale,xPoint,yPoint);
 
-for i=1:1:length(indexParameters)
-    assert(indexParameters(i,1) == 1 || indexParameters(i,1) == 3,...
-        ['Error: Only A and C may be set directly.']);
-end
+%for i=1:1:length(indexParameters)
+%    assert(indexParameters(i,1) == 1 || indexParameters(i,1) == 3,...
+%        ['Error: Only A and C may be set directly.']);
+%end
 
 xShift=0;
 xShiftWidth=(max(x1,xPoint)-min(x0,xPoint));

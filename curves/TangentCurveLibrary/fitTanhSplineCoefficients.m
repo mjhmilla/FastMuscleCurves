@@ -1,17 +1,27 @@
-function tanhCoeffs = ...
+function [tanhCoeffs,finalValuePolishing,finalDerivativePolishing] = ...
     fitTanhSplineCoefficients(xk,yk,dydxk,smoothness,...
-    yLimits,xAtIntYZero,flag_polishKnotPoints,...
-    indicesOfValueKnotsToPolish,indicesOfDerivativeKnotsToPolish)
+    yLimits,dydxLimits,yLimitsSignOfAcceptableError,...
+    xAtIntYZero,flag_polishKnotPoints,...
+    valuesToPolish,derivativesToPolish,...
+    maxPolishIterations, pinvTolerance,verbose)
 
 assert(size(xk,2)==1,'Error: xk, yk, dydxk must be n x 1');
 assert(length(xk)==length(yk) && length(xk)==length(dydxk),...
     'Error: xk, yk, and dydxk must be the same length');
-assert(size(yLimits,1)==1 && size(yLimits,2)==2,'Error:' )
+assert(size(yLimits,1)==1 && size(yLimits,2)==2,...
+    'Error: yLimits must be 1x2' );
+assert(size(dydxLimits,1)==1 && size(dydxLimits,2)==2,...
+    'Error: dydxLimits must be 1x2' );
 
 n = length(xk)-1;
 
 
-xS = ones(size(xk))*smoothness;
+xS = [];
+if(length(smoothness)==1)
+    xS = ones(n,1).*smoothness;
+else
+    xS = smoothness;
+end
 dy = diff(yk).*0.05;
 
 tanhCoeffs = zeros(n, 6);
@@ -53,7 +63,7 @@ for i=2:1:length(xk)
         yC2 = (xC-x1)*dydx1 + y1;
     end
     
-    lambda = 0.;
+    lambda = 0;
     x0T = x0 + (xC-x0)*lambda;
     x1T = x1 + (xC-x1)*lambda;
 
@@ -125,7 +135,7 @@ for i=2:1:length(xk)
     dydx0P = dydx0;
     dydx1P = dydx1;
 
-    flag_debug = 0;
+    flag_debug = 1;
     if(flag_debug==1)
         if(j==1)
             figDebug=figure;
@@ -152,7 +162,9 @@ for i=2:1:length(xk)
         ylabel('Y');
         box off;
         pause(0.1);
-        clf(figDebug);
+        if(j < n)
+            clf(figDebug);
+        end
 
     end
 end
@@ -164,22 +176,50 @@ end
 %  D parameters to pass through xk, dydxk
 %
 
+xkVTarget = valuesToPolish(:,1);
+xkDTarget = derivativesToPolish(:,1);
+
 if(flag_polishKnotPoints==1)
+    
+      assert(isinf(valuesToPolish(1,1)) && isinf(valuesToPolish(end,1)),...
+          ['Error: valuesToPolish must have x values of -inf and inf',...
+          ' at the first and last indices']);
+
+      assert(isinf(derivativesToPolish(1,1)) && isinf(derivativesToPolish(end,1)),...
+          ['Error: derivativesToPolish must have x values of -inf and inf',...
+          ' at the first and last indices']);
+
+%     assert(indicesOfValueKnotsToPolish(1,1)==1 || isinf(yLimits(1,1)),...
+%         ['Error: first and last y and dydx values must',...
+%         ' be the first and last points to polish']);
+% 
+%     assert(indicesOfValueKnotsToPolish(1,end)==length(xk) || isinf(yLimits(1,2)),...
+%         ['Error: first and last y and dydx values must',...
+%         ' be the first and last points to polish']);
+%     
+%     assert(indicesOfDerivativeKnotsToPolish(1,1)==1,...
+%         ['Error: first and last y and dydx values must',...
+%         ' be the first and last points to polish']);
+% 
+%     assert(indicesOfDerivativeKnotsToPolish(1,end)==length(dydxk),...
+%         ['Error: first and last y and dydx values must',...
+%         ' be the first and last points to polish']);
+
     tanhCoeffsUpd = tanhCoeffs;
 
     % Approach
     %   Directly adjust B to fit yk, and A to fit dydxk
-    arg = [tanhCoeffsUpd(:,1);tanhCoeffsUpd(:,3)];
+    arg = [tanhCoeffsUpd(:,1);tanhCoeffsUpd(:,2);tanhCoeffsUpd(:,3)];
 
     err = inf;
     iter =1;
     
     tol = eps*10*length(arg);
-    iterMax=200;
+    iterMax=maxPolishIterations;
     errStart=0;
 
 
-    stepLength=0.5;
+    stepLength=0.75;
     stepLengthMin = 0.01;
     stepLengthMax = 1;
 
@@ -189,24 +229,90 @@ if(flag_polishKnotPoints==1)
     dargBest = ones(size(arg));
     darg = ones(size(arg)).*inf;
 
-    xkVTarget = xk(indicesOfValueKnotsToPolish,1);
-    ykVTarget = yk(indicesOfValueKnotsToPolish,1);
+    xkVTarget       = valuesToPolish(:,1);%xk(indicesOfValueKnotsToPolish,1);
+    ykVTarget       = valuesToPolish(:,2);%yk(indicesOfValueKnotsToPolish,1);    
+    xkDTarget       = derivativesToPolish(:,1);%xk(indicesOfDerivativeKnotsToPolish,1);
+    dydxkDTarget    = derivativesToPolish(:,2);%dydxk(indicesOfDerivativeKnotsToPolish,1);
 
-    xkDTarget = xk(indicesOfDerivativeKnotsToPolish,1);
-    dydxkDTarget = dydxk(indicesOfDerivativeKnotsToPolish,1);
+    %Update the endpoints so that the values will be very close to the
+    %numerical limit. Here I'm doing this in a lazy way by artifically
+    %extending the minimum and maximum x points. Since the basis functions
+    %are exponentials they will quickly converge to the limit.
 
+
+    %Set the limits for the boundary evaluation inside the 
+    %numerical limit when the regular function has to be exchanged for
+    %the approximation.
+    argLimit = log(realmax)*0.25;
+    xkLim = [0,0];
+    for k=1:1:size(tanhCoeffs,1)
+        B = tanhCoeffsUpd(k,2);
+        C = tanhCoeffsUpd(k,3);
+        xkMin =-argLimit*C+B;
+        xkMax = argLimit*C+B;
+
+        if(xkMin < xkLim(1,1) || k==1)
+            xkLim(1,1)=xkMin;
+        end
+        if(xkMax > xkLim(1,2) || k==1)
+            xkLim(1,2) = xkMax;
+        end
+    end
+
+    yLimitsSignOfAcceptableError;
+    indexYEndpoints =[];
+    signOfYEndpoints = [];
+
+    for k=1:1:2
+        if(~isinf(yLimits(1,k)))
+            m=1;
+            if(k==2)
+                m = length(xkVTarget);
+            end
+            xkVTarget(m,1)      = xkLim(1,k);            
+            ykVTarget(m,1)      = yLimits(1,k);
+            indexYEndpoints     = [indexYEndpoints,m];
+            if(m==1)
+                signOfYEndpoints = [signOfYEndpoints,yLimitsSignOfAcceptableError(1,1)];
+            else
+                signOfYEndpoints = [signOfYEndpoints,yLimitsSignOfAcceptableError(1,2)];
+            end
+        else
+            if(k==1)
+                idxValid = [2:length(xkVTarget)]';
+                xkVTarget = xkVTarget(idxValid,1);
+                ykVTarget = ykVTarget(idxValid,1);                
+            else
+                idxValid = [1:(length(xkVTarget)-1)]';
+                xkVTarget = xkVTarget(idxValid,1);
+                ykVTarget = ykVTarget(idxValid,1);
+            end
+        end
+        m=1;
+        if(k==2)
+            m = length(xkDTarget);
+        end
+        xkDTarget(m,1)      = xkLim(1,k);
+        dydxkDTarget(m,1)   = dydxLimits(1,k);
+
+    end
+        
+
+    
     nV =length(xkVTarget);
     nD = length(xkDTarget);
     m =length(tanhCoeffsUpd(:,2));
 
     errVM=inf;
+    maxDivergingIterations = 20;
+    iterDiverging = 0;
 
-    while(errVM > tol && iter < iterMax)
+    while(errVM > tol && iter < iterMax && iterDiverging < maxDivergingIterations)
     
         %Update the tanh spline coefficients
         for i=1:1:m
-            indexParams = [1;3];
-            valueParams = [arg(i,1);arg(i+m,1)];
+            indexParams = [1;2;3];
+            valueParams = [arg(i,1);arg(i+m,1);arg(i+2*m,1)];
     
             [A,B,C,D,E,F] = calcTanhSegmentCoefficientsGivenParameters(...
                 curveInputs(i).x0,...
@@ -229,20 +335,28 @@ if(flag_polishKnotPoints==1)
         dydxkC = zeros(size(xkDTarget));
         
         for i=1:1:length(xkVTarget)
-            ykC(i,1)   = calcTanhSeriesDerivative(xkVTarget(i,1),tanhCoeffsUpd,0);
+            ykC(i,1)   = calcTanhSeriesDerivative(...
+                            xkVTarget(i,1),tanhCoeffsUpd,0);
         end
         for i=1:1:length(xkDTarget)
-            dydxkC(i,1)= calcTanhSeriesDerivative(xkVTarget(i,1),tanhCoeffsUpd,1); 
+            dydxkC(i,1)= calcTanhSeriesDerivative(...
+                            xkDTarget(i,1),tanhCoeffsUpd,1); 
         end    
            
         jacM = zeros(length(xkVTarget)+length(dydxkDTarget),length(arg));
         for i=1:1:length(xkVTarget)
             for j=1:1:m
+                if(i==1 && j==3)
+                    here=1;
+                end
 
                 jacM(i,j) = calcTanhSeriesParameterDerivative(...
                                 xkVTarget(i,1),tanhCoeffsUpd(j,:),0,1);
 
                 jacM(i,m+j) = calcTanhSeriesParameterDerivative(...
+                                xkVTarget(i,1),tanhCoeffsUpd(j,:),0,2);
+
+                jacM(i,2*m+j) = calcTanhSeriesParameterDerivative(...
                                 xkVTarget(i,1),tanhCoeffsUpd(j,:),0,3);
                
             end
@@ -252,7 +366,11 @@ if(flag_polishKnotPoints==1)
 
                 jacM(i+nV,j) = calcTanhSeriesParameterDerivative(...
                                 xkDTarget(i,1),tanhCoeffsUpd(j,:),1,1);
+
                 jacM(i+nV,m+j) = calcTanhSeriesParameterDerivative(...
+                                xkDTarget(i,1),tanhCoeffsUpd(j,:),1,2);
+
+                jacM(i+nV,2*m+j) = calcTanhSeriesParameterDerivative(...
                                 xkDTarget(i,1),tanhCoeffsUpd(j,:),1,3);
 
             end
@@ -267,16 +385,31 @@ if(flag_polishKnotPoints==1)
             errStart=errVM;
         end
 
-        if(errVM < errBest)
-            errBest=errVM;
-            tanhCoeffsBest=tanhCoeffsUpd;
-            argBest=arg;
-            dargBest=darg;
+        signsAcceptable=1;
+        for z=1:1:length(indexYEndpoints)
+            yEnd = ykC(indexYEndpoints(1,z),1);
+            if(sign(yEnd)*signOfYEndpoints(1,z) < 0)
+                signsAcceptable=0;
+            end
         end
 
-            jacMInv = pinv(jacM'*jacM,1e-6);
+        if(errVM < errBest)
+            if(signsAcceptable==1)
+                errBest=errVM;
+                tanhCoeffsBest=tanhCoeffsUpd;
+                argBest=arg;
+                dargBest=darg;
+            end
+            iterDiverging = 0;   
+
+            jacMInv = pinv(jacM'*jacM,pinvTolerance);
             darg = -jacMInv*(jacM'*errV);
-            arg = arg + darg*stepLength;
+            arg = arg + darg*stepLength;              
+        else
+            iterDiverging=iterDiverging+1;            
+        end
+
+
 
         %    stepLength=stepLength*1.2;
         %    stepLength=min(stepLength,stepLengthMax);
@@ -291,21 +424,38 @@ if(flag_polishKnotPoints==1)
         % J(q)dq = (f-f(q)
         % dq = (J(q)'*J(q)) \ (J(q)'*(f-f(q)))
         
-        fprintf('%d\t%1.3e\t%1.3e\n',iter, errVM, stepLength);
-
+        if(verbose==1)
+            fprintf('%d\t%1.3e\t%1.3e\n',iter, errVM, stepLength);
+        end
 
 
         iter=iter+1;
     end
 
     if(errBest > errStart)
-        tanhCoeffsBest=tanhCoeffs;
+        tanhCoeffsBest=tanhCoeffs;        
     else
         tanhCoeffs=tanhCoeffsBest;
     end
 
     here=1;
 end
+
+
+finalValuePolishing = zeros(length(xkVTarget),2);
+finalDerivativePolishing = zeros(length(xkDTarget),2);
+
+finalValuePolishing(:,1)=xkVTarget;
+finalDerivativePolishing(:,1)=xkDTarget;
+
+for i=1:1:length(xkVTarget)
+    finalValuePolishing(i,2)  ...
+        = calcTanhSeriesDerivative(finalValuePolishing(i,1),tanhCoeffs,0);
+end
+for i=1:1:length(xkDTarget)
+    finalDerivativePolishing(i,2)  ...
+        = calcTanhSeriesDerivative(finalDerivativePolishing(i,1),tanhCoeffs,1);
+end  
 
 
 
