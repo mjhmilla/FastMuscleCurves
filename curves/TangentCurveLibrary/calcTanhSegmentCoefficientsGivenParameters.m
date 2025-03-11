@@ -93,32 +93,52 @@ if(~isinf(yInf))
 end
 
 yValue          = calcTanhSeriesDerivative(xPoint,[A,B,C,D,E,nan],0);
-yErrBest        = abs(yValue-yPoint);
+yErrorBest        = abs(yValue-yPoint);
 xShiftBest      = 0;
 BBest = B;
 
-for i=1:1:20
-    %B and C can be adjusted
-    %B = x0 + (x1-x0)*0.5;% + xShift;
-        
-    BLeft = BBest - xShiftWidth;
-    BRight= BBest + xShiftWidth;
+iter=0;
+iterMax=20;
+tol = eps*100;
+yError = yErrorBest;
 
-    yL          = calcTanhSeriesDerivative(xPoint,[A,BLeft,C,D,E,nan],0);
-    yLErr       = abs(yL-yPoint);
-    yR          = calcTanhSeriesDerivative(xPoint,[A,BRight,C,D,E,nan],0);
-    yRErr       = abs(yR-yPoint);
-    
-    if(yLErr < yErrBest && yLErr <= yRErr)
-        yErrBest=yLErr;
-        BBest=BLeft;
-    elseif(yRErr < yErrBest && yRErr < yLErr)
-        yErrBest=yRErr;
-        BBest=BRight;        
+while(iter < iterMax && abs(yError) > tol)
+
+    params = [A,B,C,D,E,nan];
+    yValue = calcTanhSeriesDerivative(xPoint,params,0);
+    yError = yValue-yPoint;
+    D_yError_D_B = calcTanhSeriesParameterDerivative(xPoint,params,0,2);
+    dB = -yError/D_yError_D_B;
+    B = B+dB;
+
+    if(abs(yError) < abs(yErrorBest))
+        BBest=B;
+        yErrorBest=yError;
     end
-
-    xShiftWidth=xShiftWidth*0.5;
+    iter=iter+1;
 end
+% for i=1:1:20
+%     %B and C can be adjusted
+%     %B = x0 + (x1-x0)*0.5;% + xShift;
+%         
+%     BLeft = BBest - xShiftWidth;
+%     BRight= BBest + xShiftWidth;
+% 
+%     yL          = calcTanhSeriesDerivative(xPoint,[A,BLeft,C,D,E,nan],0);
+%     yLErr       = abs(yL-yPoint);
+%     yR          = calcTanhSeriesDerivative(xPoint,[A,BRight,C,D,E,nan],0);
+%     yRErr       = abs(yR-yPoint);
+%     
+%     if(yLErr < yErrBest && yLErr <= yRErr)
+%         yErrBest=yLErr;
+%         BBest=BLeft;
+%     elseif(yRErr < yErrBest && yRErr < yLErr)
+%         yErrBest=yRErr;
+%         BBest=BRight;        
+%     end
+% 
+%     xShiftWidth=xShiftWidth*0.5;
+% end
 
 B=BBest;
 

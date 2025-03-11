@@ -43,13 +43,19 @@ if(functionDerivativeOrder==0)
             
             arg = (x-B)/C;
 
-            argMin = -log(realmax)*0.1;
+%            argMin = -log(realmax)*0.1;
+%             logCoshArg = 0;
+%             if(arg <= argMin)
+%                 logCoshArg = -arg-log(2);
+%             else
+%                 logCoshArg = log(1.+exp(-2*arg))-log(2)+arg;
+%             end 
             logCoshArg = 0;
-            if(arg <= argMin)
-                logCoshArg = -arg-log(2);
+            if(arg < 0)
+                logCoshArg = log(1.+exp( 2*arg))-log(2)-arg;
             else
                 logCoshArg = log(1.+exp(-2*arg))-log(2)+arg;
-            end            
+            end
             %y = y + (D*(x-B) + A*C*(logCoshArg) + C + E);
     
             partialDerivative = C*logCoshArg;
@@ -89,14 +95,23 @@ if(functionDerivativeOrder==0)
             argMin = -log(realmax)*0.1;
             logCoshArg = 0;
             DlogCoshArg_DC = 0;
-            Darg_DC = -(x-B)/(C*C);            
-            if(arg <= argMin)
-                logCoshArg = -arg-log(2);
-                DlogCoshArg_DC = (-2*Darg_DC) + Darg_DC;                
+            Darg_DC = -(x-B)/(C*C);  
+
+            if(arg < 0)
+                logCoshArg     = log(1.+exp( 2*arg))-log(2)-arg;
+                DlogCoshArg_DC = ( 2*exp(2*arg)*Darg_DC) / (1.+exp( 2*arg)) - Darg_DC;
             else
-                logCoshArg = log(1.+exp(-2*arg))-log(2)+arg;  
+                logCoshArg = log(1.+exp(-2*arg))-log(2)+arg;
                 DlogCoshArg_DC = (-2*exp(-2*arg)*Darg_DC) / (1.+exp(-2*arg)) + Darg_DC;
             end
+% 
+%             if(arg <= argMin)
+%                 logCoshArg = -arg-log(2);
+%                 DlogCoshArg_DC = (-2*Darg_DC) + Darg_DC;                
+%             else
+%                 logCoshArg = log(1.+exp(-2*arg))-log(2)+arg;  
+%                 DlogCoshArg_DC = (-2*exp(-2*arg)*Darg_DC) / (1.+exp(-2*arg)) + Darg_DC;
+%             end
 
 
             partialDerivative = A*logCoshArg + A*C*DlogCoshArg_DC + 1;

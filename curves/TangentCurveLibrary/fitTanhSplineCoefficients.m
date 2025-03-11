@@ -384,13 +384,14 @@ if(flag_polishKeyPoints==1)
                 errBest=errVM;
                 tanhCoeffsBest=tanhCoeffsUpd;
                 argBest=arg;
-                dargBest=darg;
+                dargBest=darg;                
             end
             iterDiverging = 0;   
 
+
             jacMInv = pinv(jacM'*jacM,pinvTolerance);
             darg = -jacMInv*(jacM'*errV);
-            arg = arg + darg*stepLength;              
+            arg = arg + darg*stepLength;     
         else
             iterDiverging=iterDiverging+1;            
         end
