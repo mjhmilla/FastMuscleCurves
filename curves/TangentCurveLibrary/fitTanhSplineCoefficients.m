@@ -1,7 +1,7 @@
 function [tanhCoeffs,finalValuePolishing,finalDerivativePolishing] = ...
     fitTanhSplineCoefficients(xk,yk,dydxk,smoothness,...
     yLimits,dydxLimits,yLimitsSignOfAcceptableError,...
-    xAtIntYZero,flag_polishKnotPoints,...
+    xAtIntYZero,flag_polishKeyPoints,...
     valuesToPolish,derivativesToPolish,...
     maxPolishIterations, pinvTolerance,verbose)
 
@@ -35,112 +35,100 @@ curveInputs(n) = struct('x0',0,'x1',0,'dydx0',0,'dydx1',0,...
                        'yNegInf',0,'yInf',0,'xScale',0,...
                        'xPoint',0,'yPoint',0,'xAtIntYZero',0);
 
+flag_fixedIterationPolish = 0;
+
 for i=2:1:length(xk)
+    j=i-1;
+    flag_appendCoeffcients=1;
+    [tanhCoeffs, curveInputs] = createTanhSegment(tanhCoeffs, ...
+                                 j,...
+                                 [i-1,i],...
+                                 xk, yk, dydxk, xS,...
+                                 yLimits,xAtIntYZero,...
+                                 curveInputs,...
+                                 flag_appendCoeffcients);    
+    %%
+    % This simple approach failed for a simple reason:
+    % 1. It assumes that errors at y_i, and dydx_i can be fixed by 
+    %    segment j, where j=i-1. However, it can happen that y(x) < y_i
+    %    and this cannot be fixed by segment j, but instead by one of its
+    %    neighbors.
+    % 2. The adjustment needs to be made such that:
+    %    if yErr < 0 then 
+    %       if dydx1_i > 0
+    %         this segment can make the adjustment.
+    %       otherwise, the previous segment would need to be adjusted to 
+    %       fix this error.
+    %
+    %    And of course this will affect the rest of the curve. To do
+    %    this properly, one would have to construct a dependency
+    %    tree.
+    %
+    %    This is going to be curve dependent.
+    %
+    %%
+    if(i > 2 && flag_fixedIterationPolish==1)
+        ykErrorPre = zeros(i,1);
+        dydxkErrorPre = zeros(i,1);
+        fprintf('%i. Pre adjustment error\n',j);
+        for k=1:1:i
+            ykErrorPre(k,1) = calcTanhSeriesDerivative(...
+                                 xk(k,1),tanhCoeffs(1:j,:),0)...
+                                 -yk(k,1);
+            dydxkErrorPre(k,1) = calcTanhSeriesDerivative(...
+                                 xk(k,1),tanhCoeffs(1:j,:),1)...
+                                 -dydxk(k,1);
+            fprintf('\t%i\t%1.3e\t%1.3e\n',k,ykErrorPre(k,1),dydxkErrorPre(k,1));
+        end
 
-    j = i-1; %Segment counter
-
-    x0 = xk(i-1,1);
-    x1 = xk(i,1);
-
-    y0 = yk(i-1,1);
-    y1 = yk(i,1);
-
-    dydx0 = dydxk(i-1,1);
-    dydx1 = dydxk(i,1);
-
-    %Calculate the location where the two lines intersect
-    xC = 0;
-    yC1 = 0;
-    yC2 = 0;
-    rootEPS = eps^0.5;
-    if(abs(dydx0-dydx1) > rootEPS)
-        xC = (y1-y0-x1*dydx1+x0*dydx0)/(dydx0-dydx1);    
-        yC2 = (xC-x1)*dydx1 + y1;
-        yC1=  yC2;
-    else
-        xC = (x1+x0)/2;
-        yC1 = (xC-x0)*dydx0 + y0;
-        yC2 = (xC-x1)*dydx1 + y1;
-    end
+        for iterPolish=1:1:5
+            for k=2:1:i
     
-    lambda = 0;
-    x0T = x0 + (xC-x0)*lambda;
-    x1T = x1 + (xC-x1)*lambda;
-
-    y0T = y0 + dydx0*(xC-x0T);
-    y1T = y1 + dydx1*(xC-x1T);
-
-    dydxT0 = 0;
-    dydxT1 = 0;
-
-    yNegInf = 0;
-    yInf    = sign(dydx1)*inf;    
-    
-    xScale = xS(j,1);
-
-    if(j==1)
-        yNegInf = yLimits(1,1);
-        dydxT0 = dydx0;
-        dydxT1 = dydx1;
-    else
-        dydxT0 = 0;
-        dydxT1 = dydx1-calcTanhSeriesDerivative(x1,tanhCoeffs(1:(j-1),:),1);
+                z=k-1;
         
-        yInf    = sign(dydxT1)*inf;        
+                %Go back and adjust all previous curves to accomodate for the
+                %y and dydx perturbations of the most recently added curve
+                flag_appendCoeffcients=0;
+                [tanhCoeffsUpd, curveInputs] = createTanhSegment(tanhCoeffs(1:j,:), ...
+                                             z,...
+                                             [k-1,k],...
+                                             xk, yk, dydxk, xS,...
+                                             yLimits,xAtIntYZero,...
+                                             curveInputs,...
+                                             flag_appendCoeffcients);   
+                 tanhCoeffs(z,:)=tanhCoeffsUpd(z,:);
+            end
+        end
+
+        ykErrorPost = zeros(i,1);
+        dydxkErrorPost = zeros(i,1);
+        fprintf('%i. Post adjustment error\n',j);        
+        for k=1:1:i
+            ykErrorPost(k,1) = calcTanhSeriesDerivative(...
+                                 xk(k,1),tanhCoeffs(1:j,:),0)...
+                                 -yk(k,1);
+            dydxkErrorPost(k,1) = calcTanhSeriesDerivative(...
+                                 xk(k,1),tanhCoeffs(1:j,:),1)...
+                                 -dydxk(k,1);
+            fprintf('\t%i\t%1.3e\t%1.3e\n',k,ykErrorPost(k,1),dydxkErrorPost(k,1));
+        end        
+
+        here=1;
+
     end
 
-    xPoint = 0;
-    yPoint = 0;
-    if(j==1)
-        xPoint = x1;
-        yPoint = y1;
-    else
-        %Compensate for the error of the end point of the last curve
-        xPoint = x1;
-        yPoint = y1 - calcTanhSeriesDerivative(xPoint,tanhCoeffs(1:(j-1),:),0);
-    end
 
-    %disp(j);
-    %fprintf('%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\t%1.3f\n',...
-    %    x0,x1,dydxT0,dydxT1,yNegInf,yInf,xScale,xPoint,yPoint);
-
-    curveInputs(j).x0 = x0T;
-    curveInputs(j).x1 = x1T;
-    curveInputs(j).dydx0 = dydxT0;
-    curveInputs(j).dydx1 = dydxT1;
-    curveInputs(j).yNegInf= yNegInf;
-    curveInputs(j).yInf = yInf;
-    curveInputs(j).xScale = xScale;
-    curveInputs(j).xPoint = xPoint;
-    curveInputs(j).yPoint = yPoint;
-    curveInputs(j).xAtIntYZero = xAtIntYZero;
-    
-    [A,B,C,D,E,F] = calcTanhSegmentCoefficientsUpd( ...
-                        x0T,     ...
-                        x1T,     ...
-                        dydxT0,  ...
-                        dydxT1,  ...
-                        yNegInf,...
-                        yInf,   ...
-                        xScale, ...
-                        xPoint, ...
-                        yPoint, ...
-                        xAtIntYZero)  ;  
-    tanhCoeffs(j,:) = [A,B,C,D,E,F];
-
-    x0P = x0;
-    x1P = x1;
-    y0P = y0;
-    y1P = y1;
-    dydx0P = dydx0;
-    dydx1P = dydx1;
 
     flag_debug = 1;
     if(flag_debug==1)
         if(j==1)
             figDebug=figure;
         end
-        xT = [xk(1,1):((x1-xk(1,1))/99):x1]';
+        x0 = xk(1,1);
+        x1 = xk(i,1);
+        y0 = yk(i-1,1);
+        y1 = yk(i,1);
+        xT = [x0:((x1-x0)/99):x1]';
         yT = zeros(size(xT));
         yS = zeros(size(xT));
         for z=1:1:length(xT)
@@ -151,8 +139,6 @@ for i=2:1:length(xk)
         plot(xT,yS,'-k');
         hold on;
         plot(xT,yT,'-r');
-        hold on;
-        plot(xPoint,yPoint,'xk');
         hold on;
         plot(x0,y0,'ok');
         hold on;
@@ -179,7 +165,7 @@ end
 xkVTarget = valuesToPolish(:,1);
 xkDTarget = derivativesToPolish(:,1);
 
-if(flag_polishKnotPoints==1)
+if(flag_polishKeyPoints==1)
     
       assert(isinf(valuesToPolish(1,1)) && isinf(valuesToPolish(end,1)),...
           ['Error: valuesToPolish must have x values of -inf and inf',...
@@ -219,7 +205,7 @@ if(flag_polishKnotPoints==1)
     errStart=0;
 
 
-    stepLength=0.75;
+    stepLength=1;
     stepLengthMin = 0.01;
     stepLengthMax = 1;
 
@@ -449,15 +435,23 @@ finalValuePolishing(:,1)=xkVTarget;
 finalDerivativePolishing(:,1)=xkDTarget;
 
 for i=1:1:length(xkVTarget)
+    x = finalValuePolishing(i,1);
+    if(isinf(x))
+        x = sign(x)*log(realmax)*0.45;
+    end
     finalValuePolishing(i,2)  ...
-        = calcTanhSeriesDerivative(finalValuePolishing(i,1),tanhCoeffs,0);
+        = calcTanhSeriesDerivative(x,tanhCoeffs,0);
 end
 for i=1:1:length(xkDTarget)
+    x = finalValuePolishing(i,1);
+    if(isinf(x))
+        x = sign(x)*log(realmax)*0.45;
+    end
     finalDerivativePolishing(i,2)  ...
-        = calcTanhSeriesDerivative(finalDerivativePolishing(i,1),tanhCoeffs,1);
+        = calcTanhSeriesDerivative(x,tanhCoeffs,1);
 end  
 
-
+here=1;
 
 
 
