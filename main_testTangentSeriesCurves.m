@@ -2,10 +2,10 @@ clc;
 close all;
 clear all;
 
-flag_plotActiveForceLengthCurves= 1;
+flag_plotActiveForceLengthCurves= 0;
 flag_plotForceLengthCurves      = 0;
-flag_plotForceVelocityCurves    = 0;
-flag_plotTendonCurves           = 0;
+flag_plotForceVelocityCurves    = 1;
+flag_plotTendonCurves           = 1;
 
 flag_writePlotToFile=1;
 

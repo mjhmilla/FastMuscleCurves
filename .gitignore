@@ -1,4 +1,5 @@
 postprocessing00
+*.zip
 *.pdf
 *.fig
 *.png

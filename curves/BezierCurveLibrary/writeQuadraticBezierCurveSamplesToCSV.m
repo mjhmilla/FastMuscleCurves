@@ -6,7 +6,12 @@ status=0;
 curveNames = fieldnames(structOfMuscleCurves);
 
 for indexCurve=1:1:length(curveNames)
-    fid = fopen([folder,muscleName,'_',curveNames{indexCurve},'.csv'],'w');
+
+    if(length(muscleName)>0)
+        fid = fopen([folder,muscleName,'_',curveNames{indexCurve},'.csv'],'w');
+    else
+        fid = fopen([folder,curveNames{indexCurve},'.csv'],'w');
+    end
 
     fprintf(fid,'arg,val,der1,der2\n');
 

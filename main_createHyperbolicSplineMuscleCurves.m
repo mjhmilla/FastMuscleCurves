@@ -326,7 +326,7 @@ for i=1:1:n
     u =0;
     y   = (a*u+b)/(c*u+1);
     t0  = (c*u+1);
-    dudu= (a/t0)-(c*(a*u+b)/(t0*t0);
+    dudu= (a/t0)-(c*(a*u+b)/(t0*t0));
     
     assert(abs(y1c-y1)       < eps*10);
     assert(abs(dydu1c-dydu1) < eps*10);
